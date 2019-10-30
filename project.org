@@ -1,4 +1,4 @@
-#+TITLE: qtMUD Project History & Roadmap
+#+TITLE: Racket-MUD Project History & Roadmap
 #+TODO: PLAN TEMPLATE DRAFT TEST RELEASE | RELEASED
 #+TODO: TODO | DONE
 
