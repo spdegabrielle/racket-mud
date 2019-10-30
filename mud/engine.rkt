@@ -61,12 +61,17 @@
        services-to-load))
 
 (define (run)
-  (map (lambda (service)
-    (let ([tick-proc (service-tick-proc service)])
-      (when (procedure? tick-proc)
-        (hash-set! tickable-services (service-id service) tick-proc))))
-    services-to-load)
-  (tick))
+  (with-handlers
+    ([exn:break?
+      (lambda (exc) (stop))])
+    (map (lambda (service)
+           (let ([tick-proc (service-tick-proc service)])
+             (when (procedure? tick-proc)
+               (hash-set! tickable-services
+                          (service-id service)
+                          tick-proc))))
+         services-to-load)
+    (tick)))
 
 (define (tick)
   (map (lambda (tick-proc) (tick-proc)) (hash-values tickable-services))
