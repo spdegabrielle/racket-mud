@@ -1,0 +1,1 @@
+("6.7" ("96c51515a57f17a8c14eebf86c80353674c852c8" . "3ac0f2cdcd866ccf5aeca1a579778d458917700d") (collects #"mud" #"service.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))

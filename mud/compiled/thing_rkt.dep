@@ -1,0 +1,1 @@
+("6.7" ("c57a3fd18500821621445f2624f92b2ad0657178" . "93529c6702e5d58d030e5aeea6168e4eb5a0dd3e") (collects #"libuuid" #"main.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
