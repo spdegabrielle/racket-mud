@@ -1,5 +1,6 @@
 #lang racket
 
+(require "../qualities/client.rkt")
 (require "../command.rkt")
 (require "../thing.rkt")
 (require "../engine.rkt")
@@ -24,9 +25,7 @@ requester. There's really not more to say about it.")
    (hash 'recipient client
          'message (format "You have the following commands: ~a"
                           (string-join (hash-keys
-                                        (hash-ref
-                                         (thing-qualities client)
-                                         'commands))
+                                        (get-client-commands client))
                                        ", "
                                        #:before-first ""
                                        #:before-last ", and "

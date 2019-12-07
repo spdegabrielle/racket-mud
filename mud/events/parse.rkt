@@ -1,6 +1,7 @@
 #lang racket
 
 (require "../thing.rkt")
+(require "../qualities/client.rkt")
 
 (provide parse-event)
 (define (parse-event payload)
@@ -8,9 +9,7 @@
     (let ([client (hash-ref payload 'client)])
       (when (hash-has-key? payload 'line)
         (let ([line (hash-ref payload 'line)])
-          (when (hash-has-key? (thing-qualities client)
-                               'parse-procedure)
+          (when (thing-has-qualities? client client?)
             (let ([parser
-                   (hash-ref (thing-qualities client)
-                             'parse-procedure)])
+                   (get-client-receive-procedure client)])
               (parser client line))))))))

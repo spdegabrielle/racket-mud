@@ -1,0 +1,55 @@
+#lang racket
+
+(require "../command.rkt")
+(require "../logger.rkt")
+(require "../engine.rkt")
+(require "../thing.rkt")
+
+(require "../qualities/container.rkt")
+(require "../qualities/physical.rkt")
+(require "../qualities/room.rkt")
+
+(provide look-command)
+                  
+
+(define help-brief
+   "The command for looking at something.")
+
+(define help-syntax
+  (list
+   "look [--container=backpack] [apple]"
+   "Look at the [apple] in the [backpack] container."))
+
+(define help-long
+  "Blah blah priority of targets.")
+
+(define (look-procedure client [kwargs #f] [args #f])
+  (current-logger (make-logger 'Look-command mudlogger))
+  (log-debug "kwargs are ~a and args are ~a" kwargs args)
+  (let ([target #f] [container #f] [response #f])
+    (cond
+      [(hash? kwargs)
+       (when (hash-has-key? kwargs "container")
+         (set! container (car (hash-ref kwargs "domain"))))]
+      [(list? args)
+       (set! target (car args))]
+      [(and (false? kwargs) (false? args))
+       (set! target (get-physical-location client))])
+    (log-debug "Container is ~a and target is ~a"
+               container target)
+    (when (thing? target)
+      (cond [(thing-has-qualities? target physical?)
+             (set! response (get-physical-description target))]
+            [(thing-has-qualities? target room?)
+             (set! response (get-room-description target))]))
+    (when (false? response)
+      (set! response "You can't see anything. Don't worry, it's \
+probably temporary."))
+    (schedule 'send (hash 'recipient client 'message response))))
+
+(define look-command
+  (command
+   look-procedure
+   (hash 'brief help-brief
+         'syntax help-syntax
+         'long help-long)))

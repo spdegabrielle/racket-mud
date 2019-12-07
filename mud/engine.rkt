@@ -5,7 +5,8 @@
 (provide schedule
          load-mud
          start-mud
-         run-mud)
+         run-mud
+         tock)
 
 (define known-events (make-hash))
 (define scheduled-events (list))
@@ -97,20 +98,15 @@ tickable services" id)
   (log-debug "complete"))
 (define (schedule event payload)
   (current-logger (make-logger 'Engine-schedule mudlogger))
-  (log-debug "called with event ~a; payload ~a" event payload)
   (cond
     [(hash-has-key? known-events event)
      (set! scheduled-events
            (append scheduled-events (list (list event payload))))]
     [else
-     (log-warning "tried to schedule unknown event ~a" event)])
-  (log-debug "scheduled events now ~a" scheduled-events)
-  (log-debug "complete"))
+     (log-warning "tried to schedule unknown event ~a" event)]))
 (define (call-event event-load)
   (current-logger (make-logger 'Engine-call-event mudlogger))
   (let ([event (car event-load)]
         [payload (cdr event-load)])
-  (log-debug "called with event ~a; payload ~a" event payload)
     (when (hash-has-key? known-events event)
-      ((hash-ref known-events event) (car payload))))
-  (log-debug "complete"))
+      ((hash-ref known-events event) (car payload)))))
