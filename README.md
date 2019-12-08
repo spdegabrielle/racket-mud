@@ -14,7 +14,7 @@ To get started with Racket-MUD, clone the repo and from its directory, `racket m
 
 ## Contributing
 
-Please read the [Engine Development Guide](https://gitlab.com/emsenn/racket-mud/wiki/engine-development-guide).
+Please read the [Engine Development Guide](https://gitlab.com/emsenn/racket-mud/wikis/engine-development-guide).
 
 ## Versioning
 
@@ -22,7 +22,7 @@ This project uses [SemVer](http://semver.org/) for versioning. For the versions 
 
 ## Authors
 
-* *[emsenn](https://gitlab.com/emsenn/racket-mud/wiki/who/emsenn)*, first developer.
+* *[emsenn](https://gitlab.com/emsenn/racket-mud/wikis/who/emsenn)*, first developer.
 
 There is a complete list of [contributors](CONTRIBUTORS) available, as well.
 
