@@ -6,11 +6,17 @@
          get-room-name
          get-room-description
          get-room-exits
-         get-room-exit)
+         get-room-exit
+         room-has-exits?)
 
 (struct room (id name description exits) #:mutable)
 
 
+(define (room-has-exits? thing)
+  (cond
+    [(eq? (get-room-exits thing) (make-hash))
+     #f]
+    [else #t]))
 (define (get-room-name thing)
   (get-thing-quality thing room? room-name))
 (define (get-room-description thing)

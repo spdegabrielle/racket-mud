@@ -9,6 +9,7 @@
          destroy-thing
          thing-has-qualities?
          give-thing-new-qualities
+         replace-thing-qualities
          get-thing-quality
          get-thing-qualities
          set-thing-quality)
@@ -74,6 +75,15 @@
   (map (lambda (set)
          (when (setp set)
            (quality-setter set value)))
+       (thing-qualities thing)))
+
+(define (replace-thing-qualities thing setp new-qualities)
+  (map (lambda (current-set)
+         (when (setp current-set)
+           (set-thing-qualities!
+            thing
+            (append (remove current-set (thing-qualities thing))
+                    (list new-qualities)))))
        (thing-qualities thing)))
 
 (define (destroy-thing id)

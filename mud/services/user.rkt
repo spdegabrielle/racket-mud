@@ -11,19 +11,33 @@
 (require "../qualities/user.rkt")
 
 
+
 (provide user-service
          user-accounts
          user-account-name?
          create-user-account
-         get-user-account)
+         connected-user-accounts
+         connect-user-account
+         disconnect-user-account
+         get-user-account
+         get-user-account-qualities)
 
 (define user-accounts (make-hash))
+(define connected-user-accounts (list))
 (define account-file "./user-accounts.rktd")
+(define (get-user-account-qualities name)
+  (cdr (hash-ref user-accounts name)))
 
+(define (connect-user-account name)
+  (set! connected-user-accounts
+        (append connected-user-accounts (list name))))
 
+(define (disconnect-user-account name)
+  (set! connected-user-accounts
+        (remove name connected-user-accounts)))
 
 (define (get-user-account name)
-    (hash-ref user-accounts name))
+    (car (hash-ref user-accounts name)))
 
 (define (create-user-account
          name password
@@ -32,7 +46,8 @@
                                mudlogger))
   (log-debug "Creating account ~a" name)
   (hash-set! user-accounts name
-             (user name password birth-datetime))
+             (cons (user name password birth-datetime)
+                   (list)))
   (save-user-accounts)
   (log-debug "User accounts now ~a" user-accounts))
 

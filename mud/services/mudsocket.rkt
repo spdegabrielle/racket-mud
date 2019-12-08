@@ -8,6 +8,8 @@
 (require "../commands/commands.rkt")
 (require "../commands/help.rkt")
 (require "../commands/look.rkt")
+(require "../commands/move.rkt")
+(require "../commands/who.rkt")
 
 (require "../qualities/client.rkt")
 (require "../qualities/mudsocket-client.rkt")
@@ -38,7 +40,9 @@
                   (make-hash
                    (list (cons "commands" commands-command)
                          (cons "help" help-command)
-                         (cons "look" look-command)))
+                         (cons "look" look-command)
+                         (cons "move" move-command)
+                         (cons "who" who-command)))
                   mudsocket-client-send-procedure
                   mudsocket-client-parse-login-procedure)
           (physical
@@ -84,7 +88,7 @@ Input your [desired] user-name and press <ENTER>."
                        [(string? line-in)
                         (schedule 'parse
                                   (hash 'client thing
-                                        'line line-in))]
+                                        'line (string-trim line-in)))]
                        [(eof-object? line-in)
                         (close-input-port in)
                         (close-output-port out)]))])

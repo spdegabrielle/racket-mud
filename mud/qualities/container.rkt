@@ -22,4 +22,4 @@
 
 (define (remove-thing-from-container-inventory thing container)
   (let ([inventory (get-container-inventory container)])
-     (set-container-inventory container (remove inventory thing))))
+     (set-container-inventory container (remove thing inventory))))

@@ -7,12 +7,18 @@
 (require "../thing.rkt")
 (require "../qualities/room.rkt")
 
-(require "../recipes/rooms/hala-bridge.rkt")
-(require "../recipes/rooms/hala-ready-room.rkt")
+(require "../recipes/rooms/kaga-wasun-cabins.rkt")
+(require "../recipes/rooms/kaga-wasun-emsenn-cabin.rkt")
+(require "../recipes/rooms/kaga-wasun-entrance.rkt")
+(require "../recipes/rooms/kaga-wasun-surface.rkt")
+(require "../recipes/rooms/kaga-wasun-operations.rkt")
 
 (define required-rooms
-  (list hala-bridge
-        hala-ready-room))
+  (list kaga-wasun-cabins
+        kaga-wasun-emsenn-cabin
+        kaga-wasun-entrance
+        kaga-wasun-surface
+        kaga-wasun-operations))
 
 (provide create-rooms
          get-room

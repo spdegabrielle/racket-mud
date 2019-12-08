@@ -11,6 +11,8 @@
 (require "../services/user.rkt")
 (require "../services/room.rkt")
 
+(require "../qualities/physical.rkt")
+
 (provide (struct-out mudsocket-client)
          get-mudsocket-client-in
          get-mudsocket-client-out
@@ -57,7 +59,6 @@
          (get-mudsocket-client-login-stage client)])
     (cond
       [(= login-stage 0)
-       ; arrrrg why ain't this working. user-name is void?? WHY?
        (give-thing-new-qualities client (list (user line #f #f)))
        (cond
          [(user-account-name? line)
@@ -92,9 +93,13 @@ complete login.")
 Type your [desired] user-name and press <ENTER>.")
           (set-mudsocket-client-login-stage client 0)])]
       [(= login-stage 9)
+       (connect-user-account (get-user-name client))
+       (give-thing-new-qualities client (get-user-account-qualities
+                                         (get-user-name client)))
+       (set-physical-proper-name client (get-user-name client))
        (set-client-receive-procedure
         client mudsocket-client-parse-procedure)
-       (schedule 'move (hash 'mover client 'destination (get-room 'hala-bridge)))
+       (schedule 'move (hash 'mover client 'destination (get-room 'kaga-wasun-surface)))
        (set! output "Login complete.")])
     (schedule
      'send
@@ -112,7 +117,8 @@ Type your [desired] user-name and press <ENTER>.")
       (cond
         [(> (length spline) 0)
          (let ([input-command (car spline)])
-           (when (client-has-command? client input-command)
+           (cond
+             [(client-has-command? client input-command)
              (let ([client-command
                     (get-client-command client input-command)])
                (when (> (length spline) 1)
@@ -132,11 +138,12 @@ Type your [desired] user-name and press <ENTER>.")
                 "Client-command is ~a"
                 client-command)
                ((command-procedure client-command)
-                client keyword-arguments arguments))))]
-        [else
-         (schedule 'send
-                   (hash 'recipient client
-                         'message "No command entered."))]))))
+                client keyword-arguments arguments))]
+             [else
+              (schedule
+               'send
+               (hash 'recipient client
+                     'message "Invalid command."))]))]))))
 ;  ;; break up the line by whitespaces
 ;  (when (> (string-length line) 0)
 ;    (let ([spline (string-split line)]
