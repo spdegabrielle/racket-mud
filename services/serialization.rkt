@@ -10,8 +10,10 @@
   (current-logger (make-logger 'Serialization-read-data-from-file
                                mudlogger))
   (when (file-exists? file)
-    (with-input-from-file file
-      (lambda () (deserialize (read))))))
+    (with-handlers ([exn:fail:filesystem:errno?
+                     (λ (exn) (log-warning "~a" exn))])
+      (with-input-from-file file
+        (lambda () (deserialize (read)))))))
 
 (define (save-data-to-file data file)
   (current-logger (make-logger 'Serialization-write-data-to-file

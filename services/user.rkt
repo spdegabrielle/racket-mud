@@ -24,7 +24,7 @@
 
 (define user-accounts (make-hash))
 (define connected-user-accounts (list))
-(define account-file "./user-accounts.rktd")
+(define account-file "user-accounts.rktd")
 (define (get-user-account-qualities name)
   (cdr (hash-ref user-accounts name)))
 
@@ -54,10 +54,9 @@
 (define (load-user-accounts)
   (current-logger (make-logger 'User-service-load-account
                                mudlogger))
-  (set! user-accounts
-        (cond [(file-exists? account-file)
-               (read-data-from-file account-file)]
-              [else (make-hash)]))
+  (set! user-accounts (read-data-from-file account-file))
+  (when (void? user-accounts)
+    (set! user-accounts (make-hash)))
   (log-debug "Loaded user accounts, now ~a" user-accounts))
 
 (define (save-user-accounts)
