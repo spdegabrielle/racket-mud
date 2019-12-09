@@ -96,7 +96,7 @@ Type your [desired] user-name and press <ENTER>.")
        (connect-user-account (get-user-name client))
        (give-thing-new-qualities client (get-user-account-qualities
                                          (get-user-name client)))
-       (set-physical-proper-name client (get-user-name client))
+       (add-noun-to-thing (get-user-name client) client)
        (set-client-receive-procedure
         client mudsocket-client-parse-procedure)
        (schedule 'move (hash 'mover client 'destination (get-room 'kaga-wasun-surface)))

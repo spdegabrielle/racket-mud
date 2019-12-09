@@ -4,8 +4,10 @@
 
 (provide (struct-out container)
          get-container-inventory
+         set-container-inventory
          add-thing-to-container-inventory
-         remove-thing-from-container-inventory)
+         remove-thing-from-container-inventory
+         get-container-inventory-with-qualities)
 
 (struct container (inventory) #:mutable)
 
@@ -23,3 +25,12 @@
 (define (remove-thing-from-container-inventory thing container)
   (let ([inventory (get-container-inventory container)])
      (set-container-inventory container (remove thing inventory))))
+
+(define (get-container-inventory-with-qualities container qualitiesp)
+  (let ([matches (list)])
+    (map
+     (lambda (item)
+       (when (thing-has-qualities? item qualitiesp)
+         (set! matches (append matches (list item)))))
+     (get-container-inventory container))
+    matches))

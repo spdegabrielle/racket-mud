@@ -12,16 +12,25 @@
          replace-thing-qualities
          get-thing-quality
          get-thing-qualities
-         set-thing-quality)
+         set-thing-quality
+         add-noun-to-thing)
 
-(struct thing (id qualities) #:mutable)
+(struct thing (id adjectives nouns qualities) #:mutable)
 
 (define extant-things (make-hash))
 
-(define (create-thing [qualities #f]
-                      [updates #f])
+(define (create-thing [adjectives #f] [nouns #f]
+                      [qualities #f] [updates #f])
   (let ([new-thing
          (thing (generate-thing-id)
+                (cond
+                  [(list? adjectives)
+                   adjectives]
+                  [else (void)])
+                (cond
+                  [(list? nouns)
+                   nouns]
+                  [else (list "thing")])
                 (cond
                   [(list? qualities)
                    qualities]
@@ -33,6 +42,9 @@
        updates))
     (hash-set! extant-things (thing-id new-thing) new-thing)
     new-thing))
+
+(define (add-noun-to-thing noun thing)
+  (set-thing-nouns! thing (append (list noun) (thing-nouns thing))))
 
 (define (thing-has-qualities? thing qualitiesp)
   (let ([answer #f])

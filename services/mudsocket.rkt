@@ -34,6 +34,8 @@
   (let
       ([connection-thing
         (create-thing
+         (list)
+         (list "client")
          (list
           (mudsocket-client in out rip rport 0)
           (client ""

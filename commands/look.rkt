@@ -10,6 +10,7 @@
 (require "../qualities/container.rkt")
 (require "../qualities/physical.rkt")
 (require "../qualities/room.rkt")
+(require "../qualities/visual.rkt")
 
 (provide look-command)
                   
@@ -54,8 +55,8 @@ probably temporary."))
 
 (define (render-room-look target)
   (format "~a\n~a~a\n~a"
-          (get-room-name target)
-          (get-room-description target)
+          (get-visual-brief target)
+          (get-visual-description target)
           (cond
             [(room-has-exits? target)
              (format "\nExits: ~a"
@@ -63,8 +64,9 @@ probably temporary."))
             [else ""])
           (format "Contents: ~a"
                      (oxfordize-list
-                      (map (lambda (thing) (get-physical-proper-name thing))
-                          (get-container-inventory target))))))
+                      (map (lambda (item) (first (thing-nouns item)))
+                      (get-container-inventory-with-qualities
+                       target physical?))))))
 
 (define look-command
   (command
