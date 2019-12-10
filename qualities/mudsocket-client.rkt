@@ -124,7 +124,7 @@ Type your [desired] user-name and press <ENTER>.")
                (when (> (length spline) 1)
                  (let ([parsed-arguments
                         (parse-arguments (cdr spline))])
-                   (set! arguments (cdr parsed-arguments))
+                   (set! arguments (string-join (cdr parsed-arguments)))
                    (set! keyword-arguments (car parsed-arguments)))
                  (log-debug "kwargs are ~a and args are ~a"
                             keyword-arguments

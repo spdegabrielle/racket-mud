@@ -3,6 +3,7 @@
 (require "../command.rkt")
 (require "../engine.rkt")
 (require "../logger.rkt")
+(require "../thing.rkt")
 
 (require "../services/room.rkt")
 (require "../services/user.rkt")
@@ -41,7 +42,7 @@ one container to another.")
        (set! target client)
        (let ([target-room-exits
               (get-room-exits (get-physical-location target))]
-             [wanted-exit (car args)])
+             [wanted-exit args])
          (cond
            [(hash-has-key? target-room-exits wanted-exit)
             (set! destination
@@ -50,7 +51,7 @@ one container to another.")
             (set! response
                   (format "Invalid exit ~a" wanted-exit))]))])
     (cond
-      [(and target destination)
+      [(and (thing? target) (thing? destination))
        (schedule 'move (hash 'mover target 'destination destination))]
       [else
        (schedule 'send

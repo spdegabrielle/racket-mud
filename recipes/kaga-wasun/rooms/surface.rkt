@@ -1,9 +1,9 @@
 #lang racket
 
-(require "../../qualities/actions.rkt")
-(require "../../qualities/room.rkt")
-(require "../../qualities/container.rkt")
-(require "../../qualities/visual.rkt")
+(require "../../../qualities/actions.rkt")
+(require "../../../qualities/room.rkt")
+(require "../../../qualities/container.rkt")
+(require "../../../qualities/visual.rkt")
 
 (provide kaga-wasun-surface)
 (define kaga-wasun-surface

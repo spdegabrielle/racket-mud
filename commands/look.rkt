@@ -30,28 +30,67 @@
   (current-logger (make-logger 'Look-command mudlogger))
   (log-debug "kwargs are ~a and args are ~a" kwargs args)
   (let ([target #f] [container #f] [response #f])
+    (when (hash? kwargs)
+      (when (hash-has-key? kwargs "container")
+        (set! container (car (hash-ref kwargs "container")))))
+    (when (string? args)
+       (set! target args))
+    (log-debug "container is ~a and target is ~a" container target)
     (cond
-      [(hash? kwargs)
-       (when (hash-has-key? kwargs "container")
-         (set! container (car (hash-ref kwargs "domain"))))]
-      [(list? args)
-       (set! target (car args))]
-      [(and (false? kwargs) (false? args))
-       (set! target (get-physical-location client))])
-    (log-debug "Container is ~a and target is ~a"
-               container target)
-    (when (thing? target)
-      (cond [(thing-has-qualities? target physical?)
-             (set! response (render-physical-look target))]
-            [(thing-has-qualities? target room?)
-             (set! response (render-room-look target))]))
-    (when (false? response)
-      (set! response "You can't see anything. Don't worry, it's \
-probably temporary."))
-    (schedule 'send (hash 'recipient client 'message response))))
-
-(define (render-physical-look target)
-  (get-physical-description target))
+      [(string? container)
+       (let ([potential-containers
+              (search-physical-environment client container)])
+         (cond
+           [(> (length potential-containers) 0)
+            (cond
+              [(= (length potential-containers) 1)
+               (set! container (first potential-containers))]
+              [else
+               (set! response "Found multiple matching containers.")])]
+           [else
+            (set! response "Didn't find any matching containers.")]))]
+      [else
+       (set! container (get-physical-location client))])
+    (log-debug "container is ~a and target is ~a" container target)
+    (cond
+      [(thing? container)
+       (cond
+         [(string? target)
+          (let ([potential-targets
+                 (search-physical-environment container target)])
+            (cond
+              [(> (length potential-targets) 0)
+               (cond
+                 [(= (length potential-targets) 1)
+                  (set! target (first potential-targets))]
+                 [else
+                  (set! response "Found multiple matching targets.")])]
+              [else
+               (set! response "Didn't find any matching targets.")]))]
+         [else
+          (set! target container)])]
+      [else
+       (set! response "Invalid container.")])
+    (log-debug "container is ~a and target is ~a" container target)
+    (cond
+      [(thing? target)
+       (cond
+         [(thing-has-qualities? target room?)
+          (set! response (render-room-look target))]
+         [(thing-has-qualities? target visual?)
+          (set! response (render-visual-look target))]
+         [else
+          (set! response "Valid target, but you can't look at it.")])]
+      [else
+       (set! response "Invalid target.")])
+    (unless response
+      (set! response "You can't see anything. Don't worry, it's probably temporary."))
+    (schedule 'send
+              (hash 'recipient client
+                    'message response)))) 
+       
+(define (render-visual-look target)
+  (get-visual-description target))
 
 (define (render-room-look target)
   (format "~a\n~a~a\n~a"
