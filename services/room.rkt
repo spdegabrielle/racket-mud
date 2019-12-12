@@ -25,21 +25,21 @@
 (require "../recipes/teraum/rooms/sherwyn-county.rkt")
 
 (define required-rooms
-  (list kaga-wasun-airlock
-        kaga-wasun-cabins
-        kaga-wasun-emsenns-cabin
-        kaga-wasun-entrance
-        kaga-wasun-landing-bay
-        kaga-wasun-surface
-        kaga-wasun-operations
-        teraum-ack
-        teraum-arathel-county
-        teraum-bellybrush
+  (list ;kaga-wasun-airlock
+        ;kaga-wasun-cabins
+        ;kaga-wasun-emsenns-cabin
+        ;kaga-wasun-entrance
+        ;kaga-wasun-landing-bay
+        ;kaga-wasun-surface
+        ;kaga-wasun-operations
+        ;teraum-ack
+        ;teraum-arathel-county
+        ;teraum-bellybrush
         teraum-eridrin
-        teraum-honeyfern-laboratories-foyer
-        teraum-marby-county
-        teraum-marby-county-coast
-        teraum-sherwyn-county
+        ;teraum-honeyfern-laboratories-foyer
+        ;teraum-marby-county
+        ;teraum-marby-county-coast
+        ;teraum-sherwyn-county
         ))
 
 (provide create-rooms
@@ -50,32 +50,15 @@
 
 (define known-rooms (make-hash))
 
-
-(define (create-room recipe)
-  (let ([room-thing
-         (create-thing (first recipe)
-                       (second recipe)
-                       (third recipe))])
-    room-thing))
-
 (define (create-rooms)
   (map
-   (lambda (this-room)
+   (lambda (this-room-recipe)
      (let ([room-thing
-            (create-thing (first this-room)
-                          (second this-room)
-                          (third this-room))])
-       (let ([real-inventory (list)])
-         (map (lambda (item-recipe)
-                (set! real-inventory
-                      (append real-inventory
-                              (list (create-thing item-recipe)))))
-              (get-container-inventory room-thing))
-         (set-container-inventory room-thing real-inventory))
+            (make-recipe this-room-recipe)])
        (hash-set! known-rooms
-                  (get-thing-quality room-thing room? room-id)
+                  (get-thing-quality-attribute room-thing 'room 'id)
                   room-thing)))
-     required-rooms))
+   required-rooms))
 
 (define (get-room id)
   (cond [(hash-has-key? known-rooms id) (hash-ref known-rooms id)]

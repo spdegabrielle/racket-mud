@@ -2,35 +2,53 @@
 
 (require "../thing.rkt")
 
-(provide (struct-out container)
+(provide container
          get-container-inventory
-         set-container-inventory
+         set-container-inventory!
          add-thing-to-container-inventory
          remove-thing-from-container-inventory
-         get-container-inventory-with-qualities)
+         get-container-inventory-with-quality)
 
-(struct container (inventory) #:mutable)
+(define (apply-container-quality thing)
+  (log-debug "applying the container quality to thing #~a (~a)" (thing-id thing) (first-noun thing))
+  (log-debug "its inventory is currently ~a" (get-container-inventory thing))
+  (let ([created-things (list)])
+    (for-each (lambda (recipe) (set! created-things (append (list (make-recipe recipe)) created-things))) (get-container-inventory thing))
+    (set-container-inventory! thing created-things))
+  (log-debug "its inventory is now ~a" (map (lambda (item) (first-noun item)) (get-container-inventory thing))))
+
+(define (container inventory)
+  (quality apply-container-quality
+           (make-hash
+            (list
+             (cons 'inventory inventory)))))
 
 (define (get-container-inventory thing)
-  (get-thing-quality thing container? container-inventory))
+  (get-thing-quality-attribute thing 'container 'inventory))
 
-(define (set-container-inventory thing things)
-  (set-thing-quality thing container? set-container-inventory! things))
+(define (set-container-inventory! thing things)
+  (set-quality-attribute! (get-thing-quality thing 'container) 'inventory things))
 
 (define (add-thing-to-container-inventory thing container)
-  (let ([inventory (get-container-inventory container)])
-     (let ([new-inventory (append inventory (list thing))])
-       (set-container-inventory container new-inventory))))
+  (log-debug "adding ~a to the inventory of ~a" (first-noun thing) (first-noun container))
+  (set-container-inventory!
+   container
+   (append (get-thing-quality-attribute container 'container 'inventory) (list thing))))
+   
+ ; (let ([inventory (get-container-inventory container)])
+  ;   (let ([new-inventory (append inventory (list thing))])
+   ;    (set-container-inventory container new-inventory))))
 
 (define (remove-thing-from-container-inventory thing container)
-  (let ([inventory (get-container-inventory container)])
-     (set-container-inventory container (remove thing inventory))))
+  (set-container-inventory!
+   container
+   (remove thing (get-container-inventory container))))
 
-(define (get-container-inventory-with-qualities container qualitiesp)
+(define (get-container-inventory-with-quality container quality)
   (let ([matches (list)])
     (map
      (lambda (item)
-       (when (thing-has-qualities? item qualitiesp)
+       (when (thing-has-quality? item quality)
          (set! matches (append matches (list item)))))
      (get-container-inventory container))
     matches))

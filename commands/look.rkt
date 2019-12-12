@@ -50,10 +50,12 @@
            [else
             (set! response "Didn't find any matching containers.")]))]
       [else
+       (log-debug "assuming client means to look in the container they're in, ~a" (get-physical-location client))
        (set! container (get-physical-location client))])
     (log-debug "container is ~a and target is ~a" container target)
     (cond
       [(thing? container)
+       (log-debug "container is ~a" (first-noun container))
        (cond
          [(string? target)
           (let ([potential-targets
@@ -75,9 +77,9 @@
     (cond
       [(thing? target)
        (cond
-         [(thing-has-qualities? target room?)
+         [(thing-has-quality? target 'room)
           (set! response (render-room-look target))]
-         [(thing-has-qualities? target visual?)
+         [(thing-has-quality? target 'visual)
           (set! response (render-visual-look target))]
          [else
           (set! response "Valid target, but you can't look at it.")])]
@@ -90,7 +92,9 @@
                     'message response)))) 
        
 (define (render-visual-look target)
-  (get-visual-description target))
+  (cond [(string? (get-visual-description target))
+         (get-visual-description target)]
+        [else (get-visual-brief target)]))
 
 (define (render-room-look target)
   (format "~a\n~a~a\n~a"
@@ -104,8 +108,8 @@
           (format "Contents: ~a"
                      (oxfordize-list
                       (map (lambda (item) (first (thing-nouns item)))
-                      (get-container-inventory-with-qualities
-                       target physical?))))))
+                      (get-container-inventory-with-quality
+                       target 'physical))))))
 
 (define look-command
   (command

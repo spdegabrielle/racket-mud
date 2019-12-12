@@ -1,158 +1,36 @@
 #lang racket
+
 (require uuid)
 
 (require "./logger.rkt")
-(require "./utilities/string.rkt")
 
-(provide (struct-out thing)
-         (struct-out quality)
-         (struct-out recipe)
-         extant-things
-         create-thing
-         destroy-thing
-         thing-has-qualities?
-         thing-has-quality?
-         give-thing-new-qualities
-         get-thing-quality
-         get-thing-qualities
-         set-thing-quality
-         add-noun-to-thing
-         first-noun
-         term-matches-thing?
-         get-quality-attribute
-         set-quality-attribute!
-         get-thing-quality-attribute
-         set-thing-quality-attribute!
-         make-recipe)
-
-(struct thing (id nouns adjectives qualities) #:mutable)
-(struct quality (procedure attributes) #:mutable)
-(struct recipe (nouns adjectives qualities) #:mutable)
-
+(require "./qualities/visual.rkt")
 
 (define extant-things (make-hash))
 
-(define (create-thing [adjectives #f] [nouns #f]
-                      [qualities #f] [updates #f])
-  (let ([new-thing
-         (thing (generate-thing-id)
-                (cond
-                  [(list? adjectives)
-                   adjectives]
-                  [else (void)])
-                (cond
-                  [(list? nouns)
-                   nouns]
-                  [else (list "thing")])
-                (cond
-                  [(list? qualities)
-                   qualities]
-                  [else (list)]))])
-    (when (hash? updates)
-      (hash-map
-       (lambda (quality value)
-         (hash-set! (thing-qualities thing) quality value))
-       updates))
-    (hash-set! extant-things (thing-id new-thing) new-thing)
-    new-thing))
+(struct thing (id adjectives nouns qualities) #:mutable)
 
-(define (add-noun-to-thing noun thing)
-  (set-thing-nouns! thing (append (list noun) (thing-nouns thing))))
+(struct visual (brief description) #:mutable)
 
-(define (thing-has-qualities? thing qualitiesp)
-  (let ([answer #f])
-    (map
-     (lambda (qualities)
-       (when (qualitiesp qualities)
-         (set! answer #t)))
-     (thing-qualities thing))
-    answer))
+(define (get-visual-brief thing)
+  (let ([brief (void)])
+    (for-each (lambda (quality)
+           (when (visual? quality)
+             (set! brief (visual-brief quality))))
+      (thing-qualities thing))
+    brief))
 
-
-(define (make-recipe recipe)
-  (let ([new-thing 
-         (thing (generate-thing-id) (recipe-nouns recipe)
-                (recipe-adjectives recipe)
-                (recipe-qualities recipe))])
-    (hash-map (thing-qualities new-thing)
-             (lambda (quality-key quality-value)
-               ((quality-procedure quality-value) new-thing)))
-    new-thing))
-
-(define (first-noun thing)
-  (when (thing? thing)
-  (first (thing-nouns thing))))
-
-(define (give-thing-new-qualities thing qualities)
-  (log-debug "give thing new qualities new qualities are ~a" qualities)
-  (hash-map qualities
-            (lambda (quality-key quality-value)
-              (hash-set! (thing-qualities thing) quality-key quality-value)
-              ((quality-procedure (get-thing-quality thing quality-key)) thing))))
-
-(define (get-thing-quality thing quality-symbol)
-  (let ([qualities (thing-qualities thing)])
-    (cond
-      [(hash-has-key? qualities quality-symbol)
-       (hash-ref qualities quality-symbol)]
-      [else
-       (log-warning "Looked for ~a quality in thing #~a (~a) but it lacks it."
-                    quality-symbol (thing-id thing) (first (thing-nouns thing)))])))
-
-(define (thing-has-quality? thing quality-symbol)
-  (hash-has-key? (thing-qualities thing) quality-symbol))
-
-(define (get-quality-attribute quality attribute)
-  (cond [(hash-has-key? (quality-attributes quality) attribute)
-         (hash-ref (quality-attributes quality) attribute)]
-        [else
-         (log-warning "Looked up ~a attribute in quality ~a but it lacked it."
-                      attribute quality)]))
-
-(define (set-quality-attribute! quality attribute value)
-  (hash-set! (quality-attributes quality) attribute value))
-
-(define (get-thing-quality-attribute thing quality attribute)
-  (get-quality-attribute (get-thing-quality thing quality) attribute))
-(define (get-thing-quality-attributes thing quality)
-  (quality-attributes (get-thing-quality thing quality)))
-
-(define (set-thing-quality-attribute! thing quality attribute value)
-  (log-debug "setting ~a ~a ~a to ~a" thing quality attribute value)
-  (hash-set! (get-thing-quality-attributes thing quality) attribute value)
-  (log-debug "its now ~a" (get-thing-quality-attribute thing quality attribute)))
-
-(define (get-thing-qualities thing setp)
-  (let ([match (void)])
-    (map (lambda (set)
-           (when (setp set)
-             (set! match set)))
-         (thing-qualities thing))))
-  ;(let ([matches
-  ;       (map (lambda (set)
-  ;              (when (setp set)
-  ;                (log-debug "match")
-  ;                set))
-  ;            (thing-qualities thing))])
-  ;    (car (remq* (list (void)) matches)))))
-
-(define (set-thing-quality thing setp quality-setter value)
-  (current-logger (make-logger 'Thing-set-thing-quality
-                               mudlogger))
-  (map (lambda (set)
-         (when (setp set)
-           (quality-setter set value)))
-       (thing-qualities thing)))
-
-(define (destroy-thing id)
-  (hash-remove! extant-things id))
+(define (filter-multiple-word-strings-from-strings strings)
+  (filter values
+          (map
+           (lambda (str)
+             (cond
+               [(> (length (string-split str)) 1)
+                str]
+               [else #f]))
+           strings)))
 
 (define (term-matches-thing? term thing)
-  (log-debug "termmatches-thing? looking at ~a:\n~a\n~a\n~a"
-             (first (thing-nouns thing))
-             (thing-nouns thing)
-             (thing-adjectives thing)
-             (thing-qualities thing))
   (let* ([result #f]
          [terml (string-split term)]
          [thing-nouns (thing-nouns thing)]
@@ -309,12 +187,110 @@
        (void)])
     matches))
 
+; STAGE 1: Matching Noun Phrases
+; when there are noun phrases (otherwise move to STAGE 2)
+; look through them
+; take the last N words of term, where N is the length of the noun phrase
+; do they match?
+; if so, remove them from the term and move to STAGE 3
+; else, move to STAGE 2
+; STAGE 2: Matching nouns
+; look through the nouns
+; take the last word of term, does it match?
+; if so, remove it from the term and move to STAGE 3
+; STAGE 3: Matching Adjective Phrases
+; when there are adjective phrases, look through them (otherwise move to STAGE 4)
+; look at every N block of elements, where N is the length of the adjective phrase
+; does it match? if so, remove it from the term and keep looking through adjective phrases
+; when done, move to STAGE 4
+; STAGE 4: Matching Adjectives
+; when there are adjectives, look through them
+; look at every word of the remaining term
+; does it match? if so, remove it and keep looking through the adjectives
+; when done, move to STAGE 5
+; look at the remaining term
+; if there are any words left in it, the term doesn't match, move to STAGE 0
+; otherwise, the term matches, move to STAGE 6
+; STAGE 6
+; return the thing
+; STAGE 0
+; return an error: term doesn't match
 
-(define (generate-thing-id)
-  (let ([potential-id (uuid-string)])
-    ; if the ID is in the Table of Extant Things, try again.
-    (cond
-      [(hash-has-key? extant-things potential-id)
-       (generate-thing-id)]
-      [else
-       potential-id])))
+(define apple (thing 1 (list "shiny" "red") (list "apple" "fruit") (list)))
+
+(define john (thing 2 (list "strong") (list "john henry" "man") (list)))
+
+(define medal (thing 3 (list "saint christopher") (list "medal") (list)))
+
+(term-matches-thing? "apple" apple)                                ; #t
+(term-matches-thing? "red apple" apple)                            ; #t 
+(term-matches-thing? "shiny red apple" apple)                      ; #t
+(term-matches-thing? "blue apple" apple)                           ; #f
+(term-matches-thing? "John" john)                                  ; #f
+(term-matches-thing? "John Henry" john)                            ; #t
+(term-matches-thing? "strong John Henry" john)                     ; #t
+(term-matches-thing? "medal" medal)                                ; #t
+(term-matches-thing? "christopher medal" medal)                    ; #f
+(term-matches-thing? "saint christopher medal" medal)              ; #t
+(term-matches-thing? "bloody metal saint christopher medal" medal) ; #f
+
+    
+
+
+;
+;(define (generate-thing-id)
+;  (let ([potential-id (uuid-string)])
+;    ; if the ID is in the Table of Extant Things, try again.
+;    (cond
+;      [(hash-has-key? extant-things potential-id)
+;       (generate-thing-id)]
+;      [else
+;       potential-id])))
+;
+;(define (make-recipe recipe)
+;  (let ([new-thing (thing (generate-thing-id) (list) (list "thing") (list))]
+;        [recipe-adjectives (first recipe)]
+;        [recipe-nouns (second recipe)]
+;        [recipe-qualities (third recipe)])
+;    (add-adjectives-to-thing recipe-adjectives new-thing)
+;    (add-nouns-to-thing recipe-nouns new-thing)
+;    (add-qualities-to-thing recipe-qualities)
+;    new-thing))
+;
+;(define (add-adjectives-to-thing adjectives thing)
+;  (set-thing-adjectives! (append (thing-adjectives)
+;                                 (cond
+;                                   [(list? adjectives)
+;                                    adjectives]
+;                                   [(string? adjectives)
+;                                    (list adjectives)]))))
+;
+;(define (add-qualities-to-thing qualities thing)
+;  #t)
+;
+;(define (add-nouns-to-thing nouns thing)
+;  (set-thing-nouns! (append (thing-nouns)
+;                                 (cond
+;                                   [(list? nouns)
+;                                    nouns]
+;                                   [(string? nouns)
+;                                    (list nouns)]))))
+;
+;(define apple (make-recipe
+;               (list
+;                (list "shiny" "red") (list "apple" "fruit")
+;                (list
+;                 (visual
+;                  "shiny red apple"
+;                  "This is a shiny red apple.")))))
+;
+;(define astar-henri (make-recipe
+;                     (list
+;                      (void) "Henri Astar"
+;                      (list
+;                       (visual
+;                        "Henri Astar"
+;                        "This is a masculine human.")))))
+;                      
+;
+;(get-visual-brief apple)

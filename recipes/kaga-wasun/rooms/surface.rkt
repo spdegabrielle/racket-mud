@@ -7,7 +7,7 @@
 
 (provide kaga-wasun-surface)
 (define kaga-wasun-surface
-  (list (void) (list "kaga-wasun" "surface")
+  (list (list) (list "kaga-wasun" "surface")
         (list
          (visual
           "surface of Kaga-wasun"
@@ -20,7 +20,7 @@
             (cons "airlock" 'kaga-wasun-airlock))))
     (container
      (list
-      (list (void) (list "habitat")
+      (list (list) (list "habitat")
             (list
              (visual
               "A habitable structure built into a rocky asteroid."
@@ -28,14 +28,14 @@
       (list (list "rocky" "stony") (list "asteroid" "body")
             (list
              (visual
-              "A large chunk of igneous rock orbiting Wi, part of Chumni-mima." (void))))
+              "A large chunk of igneous rock orbiting Wi, part of Chumni-mima." (list))))
       (list (list "asteroid") (list "chumni-mama" "belt")
             (list
              (visual
-              "Chumni-mima is an asteroid belt orbiting Wi." (void))
+              "Chumni-mima is an asteroid belt orbiting Wi." (list))
              (actions
               (list "A small patch of sky glistens as two icy rocks crash into each other, out in Chumni-mima."))))
       (list (list "shiny" "metal") (list "poles")
             (list
              (visual
-              "This poles are about 10 centimeters in diameter and three meters tall, and approximately five meters apart from each other." (void)))))))))
+              "This poles are about 10 centimeters in diameter and three meters tall, and approximately five meters apart from each other." (list)))))))))

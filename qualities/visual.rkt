@@ -2,14 +2,22 @@
 
 (require "../thing.rkt")
 
-(provide (struct-out visual)
+(provide visual
          get-visual-brief
          get-visual-description)
 
-(struct visual (brief description) #:mutable)
+
+(define (visual brief description)
+  (quality apply-visual-quality
+  (make-hash
+   (list (cons 'brief brief)
+         (cons 'description description)))))
+
+(define (apply-visual-quality thing)
+  thing)
 
 (define (get-visual-brief thing)
-  (get-thing-quality thing visual? visual-brief))
+  (get-quality-attribute (get-thing-quality thing 'visual) 'brief))
 
 (define (get-visual-description thing)
-  (get-thing-quality thing visual? visual-description))
+  (get-quality-attribute (get-thing-quality thing 'visual) 'description))

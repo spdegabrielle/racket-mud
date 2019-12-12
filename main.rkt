@@ -41,6 +41,9 @@
 
 (when (load-mud required-events required-services)
   (when (start-mud)
+    (printf
+     (format "---\n\n\nRoom's qualities are ~a\n\n\n---"
+             (get-thing-quality (get-room 'teraum-eridrin) 'container)))
     (run-mud)))
 ;
 ;(require "./thing.rkt")

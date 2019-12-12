@@ -8,7 +8,7 @@
 (define (send-event payload)
   (when (hash-has-key? payload 'recipient)
     (let ([recipient (hash-ref payload 'recipient)])
-      (when (thing-has-qualities? recipient client?)
+      (when (thing-has-quality? recipient 'client)
         ((get-client-respond-procedure recipient)
          recipient
          (hash-ref payload 'message))))))

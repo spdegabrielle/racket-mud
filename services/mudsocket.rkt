@@ -9,6 +9,7 @@
 (require "../commands/help.rkt")
 (require "../commands/look.rkt")
 (require "../commands/move.rkt")
+(require "../commands/whereami.rkt")
 (require "../commands/who.rkt")
 
 (require "../qualities/client.rkt")
@@ -33,25 +34,21 @@
     (tcp-addresses in #t))
   (let
       ([connection-thing
-        (create-thing
-         (list)
-         (list "client")
-         (list
-          (mudsocket-client in out rip rport 0)
-          (client ""
-                  (make-hash
-                   (list (cons "commands" commands-command)
-                         (cons "help" help-command)
-                         (cons "look" look-command)
-                         (cons "move" move-command)
-                         (cons "who" who-command)))
-                  mudsocket-client-send-procedure
-                  mudsocket-client-parse-login-procedure)
-          (physical
-           "MUDSocket client"
-           (list "client")
-           "This is a MUDSocket client."
-           (void))))])
+        (make-recipe
+         (recipe
+          (list "client")
+          (list)
+          (make-hash
+           (list (cons 'mudsocket-client (mudsocket-client in out rip rport 0))
+                 (cons 'client (client "" (make-hash (list (cons "commands" commands-command)
+                                                        (cons "help" help-command)
+                                                        (cons "look" look-command)
+                                                        (cons "move" move-command)
+                                                        (cons "whereami" whereami-command)
+                                                        (cons "who" who-command)))
+                                       mudsocket-client-send-procedure
+                                       mudsocket-client-parse-login-procedure))
+                 (cons 'physical (physical (void)))))))])
     (hash-set! socket-connections
                (thing-id connection-thing) connection-thing)
     (log-debug "Accepted connection from ~a:~a and associated it with \
@@ -101,7 +98,7 @@ Input your [desired] user-name and press <ENTER>."
                      'send
                      (hash 'recipient thing
                            'message messages-buffer))
-                    (set-client-out-buffer thing "")))))))
+                    (set-client-out-buffer! thing "")))))))
 
 (define (stop-mudsocket)
   ;; This doesn't seem to actually disconnect clients. Ahh well.

@@ -9,7 +9,7 @@
     (let ([client (hash-ref payload 'client)])
       (when (hash-has-key? payload 'line)
         (let ([line (hash-ref payload 'line)])
-          (when (thing-has-qualities? client client?)
+          (when (thing-has-quality? client 'client)
             (let ([parser
                    (get-client-receive-procedure client)])
               (parser client line))))))))

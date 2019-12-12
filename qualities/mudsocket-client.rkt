@@ -11,42 +11,42 @@
 (require "../services/user.rkt")
 (require "../services/room.rkt")
 
+(require "../qualities/container.rkt")
 (require "../qualities/physical.rkt")
 
-(provide (struct-out mudsocket-client)
+(provide mudsocket-client
          get-mudsocket-client-in
          get-mudsocket-client-out
          mudsocket-client-send-procedure
          mudsocket-client-parse-login-procedure)
 
-; sin = socket in
-; sout = socket out
-; rip = remote ip
-; rport = remote port
-(struct mudsocket-client (in out ip port login-stage) #:mutable)
+
+(define (apply-mudsocket-client-quality thing)
+  thing)
+(define (mudsocket-client in out ip port login-stage)
+  (quality apply-mudsocket-client-quality
+  (make-hash
+   (list (cons 'in in)
+         (cons 'out out)
+         (cons 'ip ip)
+         (cons 'port port)
+         (cons 'login-stage login-stage)))))
 
 (define (get-mudsocket-client-in thing)
-  (get-thing-quality thing mudsocket-client?
-                     mudsocket-client-in))
+  (get-thing-quality-attribute thing 'mudsocket-client 'in))
 (define (get-mudsocket-client-out thing)
-  (get-thing-quality thing mudsocket-client?
-                     mudsocket-client-out))
+  (get-thing-quality-attribute thing 'mudsocket-client 'out))
 (define (get-mudsocket-client-ip thing)
-  (get-thing-quality thing mudsocket-client?
-                     mudsocket-client-ip))
+  (get-thing-quality-attribute thing 'mudsocket-client 'ip))
 (define (get-mudsocket-client-port thing)
-  (get-thing-quality thing mudsocket-client?
-                     mudsocket-client-port))
+  (get-thing-quality-attribute thing 'mudsocket-client 'port))
 (define (get-mudsocket-client-login-stage thing)
-  (get-thing-quality thing mudsocket-client?
-                     mudsocket-client-login-stage))
-(define (set-mudsocket-client-login-stage thing value)
-  (set-thing-quality thing mudsocket-client?
-                     set-mudsocket-client-login-stage!
-                     value))
+  (get-thing-quality-attribute thing 'mudsocket-client 'login-stage))
+(define (set-mudsocket-client-login-stage! thing value)
+  (set-thing-quality-attribute! thing 'mudsocket-client 'login-stage value))
 
 (define (mudsocket-client-send-procedure client message)
-  (when (thing-has-qualities? client mudsocket-client?)
+  (when (thing-has-quality? client 'mudsocket-client)
     (let ([out (get-mudsocket-client-out client)])
       (display (format "~a~n" message) out)
       (flush-output out))))
@@ -57,23 +57,24 @@
   (let ([output ""]
         [login-stage
          (get-mudsocket-client-login-stage client)])
+    (log-debug "current login-stage is ~a" login-stage)
     (cond
       [(= login-stage 0)
-       (give-thing-new-qualities client (list (user line #f #f)))
+       (give-thing-new-qualities client (hash 'user (user line #f)))
        (cond
          [(user-account-name? line)
           (set! output
                 (format "There's a client named ~a. If you're \
 them, type your password and press enter." line))
-          (set-mudsocket-client-login-stage client 2)]
+          (set-mudsocket-client-login-stage! client 2)]
          [else
           (set! output
                 (format "There's no client named ~a. What's your \
 desired password?" line))
-          (set-mudsocket-client-login-stage client 1)])]
+          (set-mudsocket-client-login-stage! client 1)])]
       [(= login-stage 1)
-       (set-user-password client line)
-       (set-mudsocket-client-login-stage client 9)
+       (set-user-password! client line)
+       (set-mudsocket-client-login-stage! client 9)
        (create-user-account
         (get-user-name client)
          line
@@ -83,23 +84,23 @@ desired password?" line))
       [(= login-stage 2)
        (cond
          [(string=?
-           (user-password (get-user-account (get-user-name client)))
+           (get-user-account-password (get-user-name client))
            line)
           (set! output "Password correct. Press <ENTER> to \
 complete login.")
-          (set-mudsocket-client-login-stage client 9)]
+          (set-mudsocket-client-login-stage! client 9)]
          [else
           (set! output "Password incorrect. \
 Type your [desired] user-name and press <ENTER>.")
-          (set-mudsocket-client-login-stage client 0)])]
+          (set-mudsocket-client-login-stage! client 0)])]
       [(= login-stage 9)
        (connect-user-account (get-user-name client))
-       (give-thing-new-qualities client (get-user-account-qualities
-                                         (get-user-name client)))
+       (give-thing-new-qualities client (hash 'container (container (list)) 'physical (physical (void))))
        (add-noun-to-thing (get-user-name client) client)
-       (set-client-receive-procedure
+       (set-client-receive-procedure!
         client mudsocket-client-parse-procedure)
-       (schedule 'move (hash 'mover client 'destination (get-room 'kaga-wasun-surface)))
+       (log-debug "prepping to move ~a to ~a" (first (thing-nouns client)) (first (thing-nouns (get-room 'teraum-eridrin))))
+       (schedule 'move (hash 'mover client 'destination (get-room 'teraum-eridrin)))
        (set! output "Login complete.")])
     (schedule
      'send

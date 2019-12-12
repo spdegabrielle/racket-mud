@@ -1,6 +1,7 @@
 #lang racket
 
-(provide oxfordize-list)
+(provide oxfordize-list
+         filter-multiple-word-strings-from-strings)
 
 (define (oxfordize-list strings)
   (cond
@@ -12,3 +13,14 @@
      (string-join strings ", "
                   #:before-first ""
                   #:before-last ", and ")]))
+
+
+(define (filter-multiple-word-strings-from-strings strings)
+  (filter values
+          (map
+           (lambda (str)
+             (cond
+               [(> (length (string-split str)) 1)
+                str]
+               [else #f]))
+           strings)))
