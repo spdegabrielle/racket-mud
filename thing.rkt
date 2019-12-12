@@ -22,7 +22,9 @@
          get-quality-attribute
          set-quality-attribute!
          get-thing-quality-attribute
+         get-thing-quality-attributes
          set-thing-quality-attribute!
+         things-with-quality
          make-recipe)
 
 (struct thing (id nouns adjectives qualities) #:mutable)
@@ -68,8 +70,16 @@
      (thing-qualities thing))
     answer))
 
+(define (things-with-quality things quality)
+  (filter values
+          (map (lambda (thing)
+                 (cond [(thing-has-quality? thing quality)
+                        thing]
+                       [else #f]))
+               things)))
 
 (define (make-recipe recipe)
+  (log-debug "making recipe ~a: ~a\n~a\n~a" recipe (recipe-nouns recipe) (recipe-adjectives recipe) (recipe-qualities recipe))
   (let ([new-thing 
          (thing (generate-thing-id) (recipe-nouns recipe)
                 (recipe-adjectives recipe)
@@ -114,6 +124,7 @@
 
 (define (get-thing-quality-attribute thing quality attribute)
   (get-quality-attribute (get-thing-quality thing quality) attribute))
+
 (define (get-thing-quality-attributes thing quality)
   (quality-attributes (get-thing-quality thing quality)))
 

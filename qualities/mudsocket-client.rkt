@@ -48,8 +48,10 @@
 (define (mudsocket-client-send-procedure client message)
   (when (thing-has-quality? client 'mudsocket-client)
     (let ([out (get-mudsocket-client-out client)])
-      (display (format "~a~n" message) out)
-      (flush-output out))))
+      (with-handlers ([exn? (lambda (exc) 
+                       (log-warning "Tried to send message to client but ~a" exc))])
+        ((lambda () (display (format "~a~n" message) out)
+        (flush-output out)))))))
 
 (define (mudsocket-client-parse-login-procedure client line)
   (current-logger (make-logger 'MUDSocket-client-parse-login-procedure

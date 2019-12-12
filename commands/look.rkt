@@ -109,7 +109,7 @@
                      (oxfordize-list
                       (map (lambda (item) (first (thing-nouns item)))
                       (get-container-inventory-with-quality
-                       target 'physical))))))
+                       target 'client))))))
 
 (define look-command
   (command

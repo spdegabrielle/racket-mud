@@ -2,11 +2,13 @@
 ;; Required services
 ; (require "./services/mudsocket.rkt") lets get back to that once we
 ; the kinks of Things worked out.
+(require "./services/action.rkt")
 (require "./services/mudsocket.rkt")
 (require "./services/room.rkt")
 (require "./services/user.rkt")
 (define required-services
   (list
+   action-service
    mudsocket-service
    user-service
    room-service))
@@ -42,8 +44,8 @@
 (when (load-mud required-events required-services)
   (when (start-mud)
     (printf
-     (format "---\n\n\nRoom's qualities are ~a\n\n\n---"
-             (get-thing-quality (get-room 'teraum-eridrin) 'container)))
+     (format "---\n\n\nRoom's inventory is ~a\n\n\n---"
+             (get-thing-quality-attribute (get-room 'teraum-eridrin) 'container 'inventory)))
     (run-mud)))
 ;
 ;(require "./thing.rkt")

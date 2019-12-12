@@ -6,13 +6,9 @@
 (provide physical
          get-physical-location
          set-physical-location!
-         search-physical-environment
-         move-thing-into-container-inventory
-         remove-thing-from-container-inventory)
+         search-physical-environment)
 
-(define (apply-physical-quality thing)
-  thing)
-
+(define (apply-physical-quality thing) (void))
 (define (physical location)
   (quality apply-physical-quality
            (make-hash
@@ -24,20 +20,6 @@
 (define (set-physical-location! thing location)
   (set-quality-attribute! (get-thing-quality thing 'physical) 'location
                           location))
-
-(define (move-thing-into-container-inventory thing container)
-  (log-debug "moving ~a into ~a" (first-noun thing) (first-noun container))
-  (let ([current-location (get-physical-location thing)])
-    (when (thing? current-location)
-      (log-debug "~a is already in a container, ~a" (first-noun thing) (first-noun current-location))
-      (remove-thing-from-container-inventory! thing current-location))
-    (add-thing-to-container-inventory thing container)
-    (set-physical-location! thing container)))
-
-(define (remove-thing-from-container-inventory! thing container)
-  (set-container-inventory!
-   container
-   (remove thing (get-container-inventory container))))
 
 (define (search-physical-environment thing name)
   (log-debug "searching the environment of thing #~a (~a)" (thing-id thing) (first (thing-nouns thing)))
