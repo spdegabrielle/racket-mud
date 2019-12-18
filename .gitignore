@@ -12,3 +12,6 @@ compiled/
 
 # Dependency tracking files
 *.dep
+
+# MUD Files
+user-accounts.rktd
