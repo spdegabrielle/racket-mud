@@ -7,16 +7,27 @@
 
 (provide lookable)
 
-(define (lookable nouns adjectives brief description
-                  [action-list #f])
-  (recipe (cond [(list? nouns) nouns] [(string? nouns) (list nouns)])
-          (cond [(list? adjectives) adjectives] [(string? adjectives) (list adjectives)])
-          (make-hash
-           (filter
-            values
-            (list
-             (cons 'physical (physical (void) 0))
-             (cons 'visual (visual brief description))
-             (cond [action-list
-                    (cons 'actions (actions action-list))]
-                   [else #f]))))))
+(define (lookable
+         #:nouns nouns #:adjectives [adjectives #f]
+         #:brief brief #:description [description #f]
+         #:location [location #f] #:actions [action-listing #f])
+  (when nouns
+    (set! nouns (cond [(list? nouns) nouns] [(string? nouns) (list)])))
+  (when adjectives
+    (set! adjectives (cond [(list? adjectives) adjectives] [(string? adjectives) (list adjectives)])))
+  (recipe
+   nouns
+   (filter values (cond [adjectives adjectives]
+                        [else (list)]))
+     (make-hash
+      (filter
+       values
+       (list
+        (cond [action-listing
+               (cons 'actions (actions action-listing))]
+              [else #f])
+        (cons 'physical (physical (cond
+                                    ; if location: find room matching location, which should be a key
+                                    [location location] [else (void)]) 0))
+        (cons 'visual (visual brief
+                              (cond [description description] [else #f]))))))))

@@ -7,9 +7,11 @@
 (require "../data-structures/thing.rkt")
 (require "../services/user.rkt")
 (require "../qualities/client.rkt")
+(require "../qualities/listener.rkt")
 (require "../qualities/mudsocket-client.rkt")
 (require "../qualities/user.rkt")
 (require "../utilities/parsing.rkt")
+(require "../utilities/talker.rkt")
 (require "../utilities/thing.rkt")
 
 (provide mudsocket-send
@@ -66,12 +68,15 @@ Type your [desired] user-name and press <ENTER>.")
           (set-mudsocket-client-login-stage! client 0)])]
       [(= login-stage 8)
        (connect-user-account (user-name client))
-       ;(give-thing-new-qualities client (hash 'talker (talker-listener-quality (list "cq"))))
+       (give-thing-new-qualities client (hash 'listener (listener-quality (list))))
+       (tune-listener-into-channels client (list "cq"))
        (add-noun-to-thing (user-name client) client)
        (set-client-receive-procedure!
         client mudsocket-parser)
        ; (schedule 'move (hash 'mover client 'destination (get-room 'teraum/arathel-county/outside-crossed-candles-inn)))
-       (set! output "Login complete.")
+       (set! output "Login complete. Type \"commands\" (without the quotes) and hit ENTER to see your available commands. Use \"help --domain=commands <command>\" to learn more about a specific command. Use \"cq\" to chat with other users. \"who\" lets you check who else is online.\n\n\
+
+This whole thing is in super-early alpha. Bugs are very common. You might crash the whole game. Sorry.")
        (set-mudsocket-client-login-stage! client 9)])
     (schedule
      'send
@@ -98,11 +103,11 @@ Type your [desired] user-name and press <ENTER>.")
                    (set! keyword-arguments (car parsed-arguments))))
                ((command-procedure client-command)
                 client keyword-arguments arguments))]
-;             [(thing-listens-to-channel? client input-command)
-;              (unless (null? (cdr spline))
-;                (schedule 'broadcast (hash 'channel input-command
-;                                           'speaker client
-;                                           'message (string-join (cdr spline)))))]
+             [(listener-of-channel? client input-command)
+              (unless (null? (cdr spline))
+                (schedule 'broadcast (hash 'channel input-command
+                                           'speaker client
+                                           'message (string-join (cdr spline)))))]
              [else
               (schedule
                'send

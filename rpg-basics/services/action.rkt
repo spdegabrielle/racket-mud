@@ -23,7 +23,13 @@
 
 (define (tick-action)
   (when (= tick-count 0)
-    (log-debug "known actions are ~a" known-actions))
+    (log-debug "known-actions are:")
+    (hash-map known-actions
+              (lambda (chance records)
+                (log-debug "with chance ~a" chance)
+                (for-each (lambda (record)
+                            (log-debug "record: ~a" (action-record-task record)))
+                          records))))
   (when (= (remainder tick-count 10000) 0)
     (let ([triggered-actions (list)])
       (hash-map
@@ -42,14 +48,17 @@
                [task (action-record-task action)])
            (cond
              [(string? task)
-            (let ([environment (physical-location actor)])
-              (when (thing? environment)
-                (for-each (lambda (thing)
-                          (schedule 'send (hash 'recipient thing
-                                                'message task)))
-                          (filter-things-with-quality (container-inventory environment) 'client))))]
+              (let ([environment (cond
+                                   [(thing-has-quality? actor 'physical)
+                                    (physical-location actor)]
+                                   [(thing-has-quality? actor 'area) actor]
+                                   [else (void)])])
+                (when (thing? environment)
+                  (for-each (lambda (thing)
+                              (schedule 'send (hash 'recipient thing
+                                                    'message task)))
+                            (filter-things-with-quality (container-inventory environment) 'client))))]
              [(procedure? task)
-              (log-debug "task is a procedure, trying it.")
               (task actor)]
              [else
               (log-debug

@@ -105,7 +105,8 @@
                     values
                     (map (lambda (item)
                            (cond
-                             [(> (physical-mass item) 0) (first-noun item)]
+                             [(> (physical-mass item) 0) (cond [(thing-has-quality? item 'visual) (visual-brief item)]
+                                                               [else (first-noun item)])]
                              [else #f]))
                          (filter-things-with-quality
                           (container-inventory target)

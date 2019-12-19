@@ -17,7 +17,6 @@
   (let ([standard-nouns (list "room")] [standard-adjectives (list)]
         [standard-brief "room"] [standard-description "This is a room."]
         [standard-contents (list)])
-    (printf (format "defining recipe for ~a" id))
     (when nouns
       (set! nouns (cond [(list? nouns) nouns] [(string? nouns) (list)])))
     (when adjectives

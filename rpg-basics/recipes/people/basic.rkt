@@ -33,11 +33,11 @@
         (cond [action-listing
                (cons 'actions (actions action-listing))]
               [else #f])
-        (cons 'container (container (filter values (append standard-contents contents))))
+        (cons 'container (container (cond [contents (append contents standard-contents)]
+                                          [else standard-contents])))
         (cons 'physical (physical (cond
                                     ; if location: find room matching location, which should be a key
                                     [location location] [else standard-location])
                               (cond [mass mass] [else standard-mass])))
-        (cons 'physical (physical (void) 1))
         (cons 'visual (visual (cond [brief brief] [else standard-brief])
                               (cond [description description] [else standard-description])))))))))

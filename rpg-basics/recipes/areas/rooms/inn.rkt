@@ -1,12 +1,5 @@
 #lang racket
 
-(require "../../../../mud/data-structures/recipe.rkt")
-(require "../../../qualities/actions.rkt")
-(require "../../../qualities/container.rkt")
-(require "../../../qualities/physical.rkt")
-(require "../../../qualities/area.rkt")
-(require "../../../qualities/visual.rkt")
-
 (require "./basic.rkt")
 (provide inn)
 

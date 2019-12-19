@@ -3,11 +3,14 @@
 
 (require "./mud/engine.rkt")
 (require "./mud/logger.rkt")
+(require "./mud/events/broadcast.rkt")
 (require "./mud/data-structures/mud-library.rkt")
 (require "./mud/data-structures/mud-server.rkt")
+(require "./mud/events/broadcast.rkt")
 (require "./mud/events/parse.rkt")
 (require "./mud/events/send.rkt")
 (require "./mud/services/mudsocket.rkt")
+(require "./mud/services/talker.rkt")
 (require "./mud/services/user.rkt")
 
 
@@ -22,10 +25,11 @@
 (define core-library
   (mud-library
    "Core"
-   (list send-event
-         parse-event)
+   (list broadcast-event
+         parse-event
+         send-event)
    (list mudsocket-service
-         ; talker-service
+         talker-service
          user-service)))
 
 (define rpg-basics-library

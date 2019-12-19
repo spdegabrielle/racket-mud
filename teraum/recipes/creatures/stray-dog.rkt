@@ -8,8 +8,8 @@
 (provide stray-dog)
 
 (define stray-dog
-  (recipe (list "dog" "canine")
-          (list "stray")
+  (recipe (list "dog" "canine" "stray")
+          (list "stray" "healthy" "healthy-looking")
           (make-hash
            (list
             (cons 'physical (physical (void) 1))

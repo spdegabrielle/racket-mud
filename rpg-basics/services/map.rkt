@@ -44,9 +44,7 @@
         [else #f]))
 
 (define (add-area-recipes-to-known-areas recipes)
-  (log-debug "Adding areas to known-areas: ~a" recipes)
   (for-each (lambda (recipe)
-              (log-debug "adding ~a. " (recipe-nouns recipe))
               (hash-set! known-areas (area-id-from-recipe recipe) recipe))
             recipes))
 

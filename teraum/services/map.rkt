@@ -10,6 +10,22 @@
 
 (define teraum-map
   (list
+   teraum/central-plains/farsteppes-road
+   teraum/central-plains/fort-kelly
+   teraum/central-plains/kingsroad
+   teraum/farsteppes/castle-oru
+   teraum/farsteppes/central-plains-road
+   teraum/farsteppes/culver-estate
+   teraum/farsteppes/helmets-dent
+   teraum/farsteppes/road-to-culver-estate
+   teraum/gloaming/belcaer/chandlers-guild-office
+   teraum/gloaming/belcaer/lobby
+   teraum/gloaming/belcaer/offices
+   teraum/gloaming/central-longroad
+   teraum/gloaming/jacobs-folly/outside
+   teraum/gloaming/north-longroad
+   teraum/gloaming/road-to-jacobs-folly
+   teraum/gloaming/south-longroad
    teraum/green-delta/ack/angers-place
    teraum/green-delta/ack/astar-ward
    teraum/green-delta/ack/bank-hill
@@ -57,6 +73,13 @@
    teraum/green-delta/arathel-county/road-to-honeyfern-labs
    teraum/green-delta/arathel-county/south-arathel-ack-road
    teraum/green-delta/arathel-county/west-arathel-pled-road
+   teraum/green-delta/bellybrush/arathel-road
+   teraum/green-delta/bellybrush/east-harbrook-street
+   teraum/green-delta/bellybrush/east-kingsroad
+   teraum/green-delta/bellybrush/kingsroad-outside-orphanage
+   teraum/green-delta/bellybrush/west-harbrook-street
+   teraum/green-delta/bellybrush/west-kingsroad
+   teraum/green-delta/bellybrush/westgate
    teraum/green-delta/marby-county/eridrin
    ))
 

@@ -24,23 +24,19 @@
 (define (apply-actions-quality thing)
   (let ([created-actions (list)])
     (log-debug "applying actions quality to ~a" (first-noun thing))
-    (for-each (lambda (action-recipe)
-                (when (action-recipe? action-recipe)
-                  (let ([action-record (action-record thing
-                                             (action-recipe-chance action-recipe)
-                                             (action-recipe-task action-recipe))])
-                    (set! created-actions (append (list action-record) created-actions))
-                    (let ([action-chance
-                           (action-record-chance action-record)])
-                      (hash-set!
-                       known-actions
-                       action-chance
-                       (cond
-                         [(hash-has-key? known-actions action-chance)
-                          (append (list action-record)
-                                  (hash-ref known-actions
-                                            action-chance))]
-                         [else (list action-record)]))))))
+    (for-each (lambda (action-pair)
+                (let ([action-record (action-record
+                                      thing (car action-pair)
+                                      (cdr action-pair))])
+                  (set! created-actions (append (list action-record) created-actions))
+                  (let ([action-chance (action-record-chance action-record)])
+                    (hash-set! known-actions
+                               action-chance
+                               (cond
+                                 [(hash-has-key? known-actions action-chance)
+                                  (append (list action-record)
+                                          (hash-ref known-actions action-chance))]
+                                 [else (list action-record)])))))
               (actions-listing thing))
     (set-actions-listing! thing created-actions)))
 

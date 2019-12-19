@@ -16,7 +16,7 @@
 (define (setup-spawn-area)
   (set-spawn-area!
    (get-area
-    'teraum/green-delta/arathel-county/outside-crossed-candles-inn)))
+    'teraum/green-delta/ack/dock-ward)))
 
 (define teraum-post-login-service
   (service

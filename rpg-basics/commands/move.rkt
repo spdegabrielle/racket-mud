@@ -30,6 +30,7 @@ one container to another.")
   ; remove object from its current location
   ; add object to destination
   (let ([target #f] [destination #f] [response #f])
+    (unless kwargs (set! kwargs (make-hash)))
     (cond
       [(hash-has-key? kwargs "object")
         (set! target
