@@ -9,5 +9,6 @@
    'teraum/green-delta/arathel-county/road-to-honeyfern-labs
    #:brief "Road toward Honeyfern Laboratories"
    #:description "This is the road toward Honeyfern Laboratories, in Arathel County. Tall pines scatter the area. To the northeast is Honeyfern Laboratories, and to the southwest is a road leading elsewhere."
-   #:exits '(("northeast" . 'teraum/green-delta/arathel-county/honeyfern-labs/outside-gate)
+   #:exits '(("northeast" . teraum/green-delta/arathel-county/honeyfern-labs/outside-gate)
+             ("southeast" . teraum/green-delta/arathel-county/road-toward-honeyfern-labs)
              ("southwest" . teraum/green-delta/arathel-county/fork-toward-honeyfern-labs))))

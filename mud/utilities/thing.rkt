@@ -3,7 +3,9 @@
 (require "../data-structures/thing.rkt")
 (require "../data-structures/quality.rkt")
 
-(provide thing-quality
+(provide (all-from-out "../data-structures/thing.rkt")
+         (all-from-out "../data-structures/quality.rkt")
+         thing-quality
          thing-quality-structure
          filter-things-with-quality
          give-thing-new-qualities)

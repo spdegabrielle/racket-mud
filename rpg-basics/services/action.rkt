@@ -22,14 +22,6 @@
 
 
 (define (tick-action)
-  (when (= tick-count 0)
-    (log-debug "known-actions are:")
-    (hash-map known-actions
-              (lambda (chance records)
-                (log-debug "with chance ~a" chance)
-                (for-each (lambda (record)
-                            (log-debug "record: ~a" (action-record-task record)))
-                          records))))
   (when (= (remainder tick-count 10000) 0)
     (let ([triggered-actions (list)])
       (hash-map

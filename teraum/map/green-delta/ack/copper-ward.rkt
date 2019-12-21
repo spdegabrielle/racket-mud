@@ -12,4 +12,4 @@
    #:exits '(("east" . teraum/green-delta/ack/brass-ward)
              ("southeast" . teraum/green-delta/ack/carper-falls)
              ("southwest" . teraum/green-delta/ack/sugar-heights)
-             ("west" . teraum/green-delta/ack/squash-ward))))
+             ("west" . teraum/green-delta/ack/dock-ward))))

@@ -81,6 +81,8 @@
    teraum/green-delta/bellybrush/west-kingsroad
    teraum/green-delta/bellybrush/westgate
    teraum/green-delta/marby-county/eridrin
+   teraum/green-delta/pled-county/daughts-cottage
+   teraum/green-delta/pled-county/west-arathel-pled-road
    ))
 
 (define (load-map)

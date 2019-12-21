@@ -6,13 +6,13 @@
 (require "../../qualities/physical.rkt")
 (require "../../qualities/visual.rkt")
 
+(provide item)
 
-(provide lookable)
-
-(define (lookable
-         #:nouns nouns #:adjectives [adjectives #f]
-         #:brief brief #:description [description #f]
-         #:location [location #f] #:actions [action-listing #f])
+(define (item
+         #:nouns [nouns #f] #:adjectives [adjectives #f]
+         #:brief [brief #f] #:description [description #f]
+         #:actions [action-listing #f] #:mass [mass #f]
+         #:location [location #f])
   (recipe
    (merge-stringy-lists nouns)
    (merge-stringy-lists adjectives)
@@ -25,6 +25,7 @@
               [else #f])
         (cons 'physical (physical (cond
                                     ; if location: find room matching location, which should be a key
-                                    [location location] [else (void)]) 0))
+                                    [location location] [else (void)])
+                                  (cond [mass mass] [else 1])))
         (cons 'visual (visual brief
                               (cond [description description] [else #f]))))))))

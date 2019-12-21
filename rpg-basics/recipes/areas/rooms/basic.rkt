@@ -1,7 +1,7 @@
 #lang racket
 
-(require "../../../../mud/data-structures/recipe.rkt")
-(require "../../basics/lookable.rkt")
+(require "../../../../mud/utilities/list.rkt")
+(require "../../../../mud/utilities/recipe.rkt")
 (require "../../../qualities/actions.rkt")
 (require "../../../qualities/area.rkt")
 (require "../../../qualities/container.rkt")
@@ -15,17 +15,10 @@
          #:exits [exits #f]
          #:contents [contents #f] #:actions [action-listing #f])
   (let ([standard-nouns (list "room")] [standard-adjectives (list)]
-        [standard-brief "room"] [standard-description "This is a room."]
-        [standard-contents (list)])
-    (when nouns
-      (set! nouns (cond [(list? nouns) nouns] [(string? nouns) (list)])))
-    (when adjectives
-      (set! adjectives (cond [(list? adjectives) adjectives] [(string? adjectives) (list adjectives)])))
+        [standard-brief "room"] [standard-description "This is a room."])
     (recipe
-     (filter values (cond [nouns (append standard-nouns nouns)]
-                          [else standard-nouns]))
-     (filter values (cond [adjectives (append standard-adjectives adjectives)]
-                          [else standard-adjectives]))
+     (merge-stringy-lists nouns standard-nouns)
+     (merge-stringy-lists adjectives standard-adjectives)
      (make-hash
       (filter
        values
@@ -33,9 +26,8 @@
         (cond [action-listing
                (cons 'actions (actions action-listing))]
               [else #f])
-        (cond [exits
-               (cons 'area (area id (make-hash exits)))]
-              [else #f])
-        (cons 'container (container (cond [contents contents] [else standard-contents])))
+        (cons 'area (area id (cond [exits (make-hash exits)]
+                                   [else (make-hash)])))
+        (cons 'container (container (merge-stringy-lists contents)))
         (cons 'visual (visual (cond [brief brief] [else standard-brief])
                               (cond [description description] [else standard-description])))))))))

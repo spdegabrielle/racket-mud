@@ -3,7 +3,14 @@
 (require "../data-structures/thing.rkt")
 (require "../data-structures/quality.rkt")
 
-(provide make-recipe)
+(provide make-recipe
+         recipe-with-added-quality
+         (all-from-out "../data-structures/recipe.rkt"))
+
+(define (recipe-with-added-quality recipe quality)
+  (let ([new-recipe recipe])
+    (hash-set! (recipe-qualities new-recipe) (car quality) (cdr quality))
+    new-recipe))
 
 (define (make-recipe recipe)
   (let ([new-thing 

@@ -14,6 +14,7 @@
 (require "./mud/services/user.rkt")
 
 
+(require "./rpg-basics/events/collect.rkt")
 (require "./rpg-basics/events/move.rkt")
 (require "./rpg-basics/services/action.rkt")
 (require "./rpg-basics/services/post-login.rkt")
@@ -36,6 +37,7 @@
   (mud-library
    "RPG Basics"
    (list
+    collect-event
     move-event)
    (list
     action-service
@@ -56,15 +58,16 @@
               "0.1.0"
               (list core-library
                     rpg-basics-library
-                    teraum-library
-                    )))
+                    teraum-library)))
 
 (void
  (current-logger mudlogger)
  (thread
   (λ()(let loop ()
         (define v (sync mudlog-receiver))
-        (printf "[~a] ~a\n" (vector-ref v 0) (vector-ref v 1))
+        (printf "[~a] ~a\n"
+                (vector-ref v 0)
+                (vector-ref v 1))
         (loop)))))
 
 (when (load-mud racket-mud-dev-server)

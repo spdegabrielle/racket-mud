@@ -1,6 +1,10 @@
 #lang racket
 
+
+(require "../../../../mud/utilities/list.rkt")
+
 (require "./basic.rkt")
+
 (provide rural-road)
 
 (define (rural-road id
@@ -10,17 +14,12 @@
          #:exits [exits #f])
   (let ([standard-nouns (list "road")]
         [standard-brief "road"] [standard-description "This is a dirt road in a rural area."])
-    (when nouns
-      (set! nouns (cond [(list? nouns) nouns] [(string? nouns) (list)])))
-    (when adjectives
-      (set! adjectives (cond [(list? adjectives) adjectives] [(string? adjectives) (list adjectives)])))
     (outdoors
      id
-     #:nouns (filter values (cond
-                              [nouns (append standard-nouns nouns)]
-                              [else standard-nouns]))
+     #:nouns (merge-stringy-lists nouns standard-nouns)
+     #:adjectives adjectives
      #:brief (cond [brief brief] [else standard-brief])
      #:description (cond [description description] [else standard-description])
-     #:contents (cond [contents contents] [else (list)])
+     #:contents contents
      #:actions action-listing
      #:exits exits)))

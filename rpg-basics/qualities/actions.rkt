@@ -23,7 +23,6 @@
 
 (define (apply-actions-quality thing)
   (let ([created-actions (list)])
-    (log-debug "applying actions quality to ~a" (first-noun thing))
     (for-each (lambda (action-pair)
                 (let ([action-record (action-record
                                       thing (car action-pair)

@@ -80,7 +80,8 @@
 A bridge from here lead north across the murky brown Green River toward the North Ward. The Kingsroad cuts east and west through the district, leading to the Copper Ward and the harbour, respectively. Heading south through the maze of tents and warehouses leads to the Squash Ward."
    #:exits '(("north" . teraum/green-delta/ack/north-ward)
              ("east" . teraum/green-delta/ack/copper-ward)
-             ("south" . teraum/green-delta/ack/squash-ward))
+             ("south" . teraum/green-delta/ack/squash-ward)
+             ("west" . teraum/green-delta/ack/dock-ward/harbour))
    #:actions '((2 . "At the harbour, a sailor argues with a representative from the Red Union.")
                (1 . "A young woman pulls a roll of paper from her satchel, tacks it to a segment of the Ward's wall, and paints over it with a paintbrush quickly, before pulling down the paper. Whatever message she meant to leave is entirely illegible. At least she tried."))
    #:contents (list ack blocks bridge clerks copper-ward graffiti harbour humans kingsroad north-ward ocean river sailors sewage ships stores squash-ward tents wall warehouses)))

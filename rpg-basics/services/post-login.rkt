@@ -9,6 +9,8 @@
 (require "../../mud/qualities/user.rkt")
 (require "../../mud/utilities/thing.rkt")
 
+(require "../commands/collect.rkt")
+(require "../commands/inventory.rkt")
 (require "../commands/look.rkt")
 (require "../commands/move.rkt")
 (require "../commands/say.rkt")
@@ -38,6 +40,8 @@
                                 'destination spawn-area))
                 (add-client-commands!
                  thing (hash
+                        "collect" collect-command
+                        "inventory" inventory-command
                         "look" look-command
                         "move" move-command
                         "say" say-command

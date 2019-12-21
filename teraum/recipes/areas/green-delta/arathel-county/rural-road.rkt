@@ -1,5 +1,6 @@
 #lang racket
 
+(require "../../../../../mud/utilities/list.rkt")
 (require (prefix-in basics/ "../../../../../rpg-basics/recipes/areas/outdoors/rural-road.rkt"))
 (require "../../../../../rpg-basics/recipes/basics/lookable.rkt")
 
@@ -26,17 +27,11 @@
   (let ([standard-nouns (list "road")]
         [standard-brief "road in Arathel County"] [standard-description "This is a road in Arathel County."]
         [standard-contents (list road-lookable dirt-lookable)])
-    (when nouns
-      (set! nouns (cond [(list? nouns) nouns] [(string? nouns) (list)])))
-    (when adjectives
-      (set! adjectives (cond [(list? adjectives) adjectives] [(string? adjectives) (list adjectives)])))
     (basics/rural-road
      id
-     #:nouns (filter values (cond
-                              [nouns (append standard-nouns nouns)]
-                              [else standard-nouns]))
+     #:nouns (merge-stringy-lists nouns standard-nouns)
      #:brief (cond [brief brief] [else standard-brief])
      #:description (cond [description description] [else standard-description])
-     #:contents (cond [contents (append contents standard-contents)] [else standard-contents])
+     #:contents (merge-stringy-lists contents standard-contents)
      #:actions action-listing
      #:exits exits)))
