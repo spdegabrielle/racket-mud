@@ -1,5 +1,7 @@
 #lang racket
 
+(require uuid)
+
 (struct mud (name services hooks things events) #:mutable)
 (struct thing (name nouns adjectives qualities handler) #:mutable)
 
@@ -12,8 +14,18 @@
 
 (define user-accounts (make-hash))
 
+(define bugger
+  (lambda ()
+    (define bugs (list))
+    (lambda ([bug #f])
+      (cond [bug (set! bugs (append (list bug) bugs))]
+            [else bugs]))))
+(define bug (bugger))
+
 (define (oxfordize-list strings)
   (cond
+    [(null? strings)
+     (log-warning "Tried to oxfordize an empty list.")]
     [(null? (cdr strings))
      (car strings)]
     [(null? (cddr strings))
@@ -22,6 +34,21 @@
      (string-join strings ", "
                   #:before-first ""
                   #:before-last ", and ")]))
+
+(define str-and-sym-list-joiner
+    (lambda (strings [sep ""])
+      (string->symbol
+       (string-join
+        (map
+         (lambda (string)
+           (cond
+             [(string? string)
+              string]
+             [(symbol? string)
+              (symbol->string
+               string)]))
+         strings)
+        sep))))
 
 (define (force-stringy-list strings)
     (cond [(list? strings) strings] [(pair? strings) (list (car strings) (cdr strings))]
@@ -46,7 +73,7 @@
           (hash-map (thing-qualities thing)
                     (lambda (id quality)
                       (let ([apply-proc-key 
-                             (string->symbol (string-join (list "apply-" (symbol->string id) "-quality") ""))]
+                             (str-and-sym-list-joiner '("apply" id "quality") "-")]
                             [hooks (mud-hooks mud)])
                         (when (hash-has-key? hooks apply-proc-key)
                           ((hash-ref hooks apply-proc-key) handler))))))
@@ -100,10 +127,11 @@
             [message (quality 'client-out)]
             [out (quality 'mudsocket-out)])
         (log-debug "Sending ~a a message:\n   ~a" name message)
-        (display (format (cond
-                           [(eq? #\newline (last (string->list message))) "~a"]
-                           [else "~a\n"]) message) out)
-        (flush-output out)
+        (with-handlers ([exn? (lambda (exn) (log-warning "~a" exn))])
+           (display (format (cond
+                              [(eq? #\newline (last (string->list message))) "~a"]
+                              [else "~a\n"]) message) out)
+           (flush-output out))
         (set-quality! 'client-out "")))))
 
 (define account-name?
@@ -125,7 +153,10 @@
                   (set! reply (format "There's a extant account for ~a. If it's yours, enter the password and press ENTER. Otherwise, disconnect [and reconnect]."))
                   (set! login-stage 1)]
                  [else
-                  (set! reply "There's no account with that name. Your new password is\n\n~a\n\nPress when you're ready to log in.")
+                  (let ([pass (substring (uuid-string) 0 8)])
+                    (set-quality! 'pass pass)
+                    (log-debug "MUD IS ~a" mud)
+                    (set! reply (format "There's no account named ~a. Your new password is\n\n~a\n\nPress ENTER when you're ready to log in." line pass)))
                   (set! login-stage 9)])]
           [(= login-stage 9)
            (set-quality! 'client-parser (client-parser mud sch thing))
@@ -142,7 +173,6 @@
             [commands (quality 'commands)]
             [location (quality 'location)])
         (log-debug "Preparing to parse the line ~a from ~a. Its commands are ~a" line (name thing) commands)
-        (log-debug "TMP and it's location is ~a" ((quality-getter location) 'exits))
         (when (> (string-length line) 0)
           (let* ([spline (string-split line)]
                  [input-command (car spline)] [args (string-join (cdr spline))])
@@ -411,38 +441,31 @@
 (define outdoors
   (lambda (#:name name #:description [description #f] #:exits [exits #f]
            #:contents [contents #f])
-    (area #:name name
-          #:description description
-          #:exits exits
-          #:contents contents)))
+    (area #:name name  #:description description
+          #:exits exits #:contents contents)))
 
 (define room
   (lambda (#:name name #:description [description #f] #:exits [exits #f]
            #:contents [contents #f])
-    (area #:name name
-          #:description description
-          #:exits exits
-          #:contents contents)))
+    (area #:name name #:description description
+          #:exits exits #:contents contents)))
 
 (define inn
   (lambda (#:name name #:description [description #f] #:exits [exits #f]
            #:contents [contents #f])
-    (room #:name name
-           #:description description
-           #:exits exits
-           #:contents contents)))
+    (room #:name name #:description description
+           #:exits exits #:contents contents)))
 
 (define road
   (lambda (#:name name #:description [description #f] #:exits [exits #f]
            #:contents [contents #f])
-    (outdoors #:name name
-              #:description description
-              #:exits exits
-              #:contents contents)))
+    (outdoors #:name name #:description description
+              #:exits exits #:contents contents)))
 
 (define person
   (lambda (#:name name #:description [description #f]
-           #:contents [contents #f] #:actions [actions #f])
+           #:contents [contents #f] #:actions [actions #f]
+           #:mass [mass #f])
     (lambda (make)
       (make name
             #:qualities
@@ -452,29 +475,36 @@
              (cons 'contents
                    (cond [contents contents] [else (cons 'contents (list))]))
              (cond [actions (cons 'actions actions)]
+                   [else #f])
+             (cond [mass (cons 'mass mass)]
                    [else #f]))))))
+
+(define human
+  (lambda (#:name name #:description [description #f]
+           #:contents [contents #f] #:actions [actions #f])
+    (person #:name name #:description description
+            #:contents contents #:actions actions
+            #:mass 1)))
 
 (define ghost
   (lambda (#:name name #:description [description #f]
            #:contents [contents #f] #:actions [actions #f])
-    (person #:name name
-            #:description description
-            #:contents contents
-            #:actions actions)))
+    (person #:name name #:description description
+            #:contents contents #:actions actions)))
 
 (define alfric
-  (ghost
-   #:name "Alfric"
-   #:description "This is Alfric, a ghost that haunts Crossed Candles Inn."
-   #:actions '((3 . "Alfric floats around a bit."))))
+  (ghost #:name "Alfric"
+         #:description "This is Alfric, a ghost that haunts Crossed Candles Inn."
+         #:actions '((3 . "Alfric floats around a bit."))))
+
+(define lexandra
+  (human #:name "Lexandra Terr"))
   
 (define crossed-candles-inn
-  (inn
-   #:name "Crossed Candles Inn"
-   #:description "This is the Crossed Candles Inn: a simple wooden shack with several shuttered windows. Accomodations consist of a single large room with wooden cots. The Inn is said to be haunted by the ghost of a human man named Alfric. The innkeeper is a short human woman named Lexandra Terr. She is a retired thief, and maintains a collection of various maps. A door leads out to Arathel County."
-   #:exits '((out . outside-crossed-candles-inn))
-  
-   #:contents (list alfric)))
+  (inn #:name "Crossed Candles Inn"
+       #:description "This is the Crossed Candles Inn: a simple wooden shack with several shuttered windows. Accomodations consist of a single large room with wooden cots. The Inn is said to be haunted by the ghost of a human man named Alfric. The innkeeper is a short human woman named Lexandra Terr. She is a retired thief, and maintains a collection of various maps. A door leads out to Arathel County."
+       #:exits '((out . outside-crossed-candles-inn))
+       #:contents (list alfric lexandra)))
 
 (define outside-crossed-candles-inn
   (road #:name "outside Crossed Candles Inn"
