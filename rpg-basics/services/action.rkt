@@ -20,7 +20,6 @@
 
 (define known-actions (make-hash))
 
-
 (define (tick-action)
   (when (= (remainder tick-count 10000) 0)
     (let ([triggered-actions (list)])
