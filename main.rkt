@@ -173,7 +173,10 @@
              [else (set! reply "Incorrect. Type your [desired] user-name and press ENTER.") (set! login-stage 0)])]
           [(= login-stage 9)
            (set-quality! 'client-parser (client-parser mud sch thing))
-           ((hash-ref (mud-hooks mud) 'move) thing ((hash-ref (mud-hooks mud) 'room) 'crossed-candles-inn))])
+           (let ([hooks (mud-hooks mud)])
+             ((hash-ref hooks 'move) thing ((hash-ref hooks 'room) 'crossed-candles-inn))
+             ((hash-ref hooks 'tune-in) "cq" thing)
+           ((hash-ref (mud-hooks mud) 'move) thing ((hash-ref (mud-hooks mud) 'room) 'crossed-candles-inn)))])
         (when reply (add-to-out reply))))))
 
 (define parse-args
@@ -217,6 +220,11 @@
                    ((hash-ref commands input-command) args)]
                   [(and location (hash-has-key? ((quality-getter location) 'exits) (string->symbol input-command)))
                    ((move sch thing) input-command)]
+                  [(member input-command (quality 'channels))
+                   (when (hash-has-key? args 'line)
+                     ((hash-ref (mud-hooks mud) 'broadcast)
+                      input-command thing
+                      (hash-ref args 'line)))]
                   [else (set! reply "Invalid command.")])))
         (when reply (add-to-out reply))))))
 
@@ -314,7 +322,62 @@
                                          (hash-ref areas exit))))))
       #f)))
 
-
+(define talker
+  (lambda ([chans (list "cq")])
+    (define channels (make-hash
+                      (map
+                       (lambda (channel) (cons channel (list)))
+                       chans)))
+    (lambda (mud sch make)
+      (define add-listener!
+        (lambda (name listener)
+          (let ([listeners (hash-ref channels name)])
+            (hash-set! channels name (append (list listener) listeners))
+            ((quality-setter listener)
+             'channels (append (list name) ((quality-getter listener) 'channels))))))
+      (define remove-listener!
+        (lambda (name listener)
+          (let ([listeners (hash-ref channels name)])
+            (hash-set! channels name (remove listener listeners)))))
+      (define broadcast
+        (lambda (chan speaker message)
+          (map
+           (lambda (listener)
+             (define add-to-out
+               ((string-quality-appender listener) 'client-out))
+             (add-to-out (format "(~a) ~a: ~a"
+                                 chan
+                                 (name speaker)
+                                 message)))
+           (hash-ref channels chan))))
+      (define tune-in
+        (lambda (chan listener)
+          (define
+            tune-in (lambda (chan listener)
+                      (unless (member
+                               chan
+                               ((quality-getter listener) 'channels))
+                        (add-listener! chan listener))))
+          (cond
+            [(list? chan) (for-each (lambda (chan) (tune-in chan listener))
+                                    chan)]
+            [(string? chan)
+             (tune-in chan listener)])))
+      (define tune-out
+        (lambda (chan listener)
+          (define
+            tune-out (lambda (chan listener)
+            (remove-listener! chan listener)))
+          (cond
+            [(list? chan) (for-each (lambda (chan) (tune-out chan listener))
+                                    chan)]
+            [(string? chan)
+             (tune-out chan listener)])))
+      (let ([hooks (mud-hooks mud)])
+        (hash-set! hooks 'broadcast broadcast)
+        (hash-set! hooks 'tune-in tune-in)
+        (hash-set! hooks 'tune-out tune-out))
+      #f)))
 
 (define actions
   (lambda ()
@@ -385,14 +448,16 @@
                (let* ([thing
                       (make "MUDSocket Client"
                                   #:qualities
-                                  (list (cons 'commands (make-hash))
-                                        (cons 'client-in "")
-                                        (cons 'client-out "")
-                                        (cons 'mass 1)
-                                        (cons 'mudsocket-in in)
-                                        (cons 'mudsocket-out out)
-                                        (cons 'mudsocket-ip rip)
-                                        (cons 'mudsocket-port rport)))]
+                                  (list
+                                   (cons 'channels (list))
+                                   (cons 'commands (make-hash))
+                                   (cons 'client-in "")
+                                   (cons 'client-out "")
+                                   (cons 'mass 1)
+                                   (cons 'mudsocket-in in)
+                                   (cons 'mudsocket-out out)
+                                   (cons 'mudsocket-ip rip)
+                                   (cons 'mudsocket-port rport)))]
                       [set-quality! (quality-setter thing)]
                       [quality (quality-getter thing)])
                  (set-quality! 'client-parser (client-login-parser mud sch thing))
@@ -629,5 +694,6 @@
 (define test-mud (start-mud "TestMUD"
                             (list (mudsocket)
                                   (accounts)
+                                  (talker)
                                   (actions)
                                   (mudmap teraum-map))))
