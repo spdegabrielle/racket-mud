@@ -466,6 +466,7 @@
                  (set-quality! 'commands
                               (make-hash
                                (list
+                                (cons "commands" (commands sch thing))
                                 (cons "look" (look sch thing))
                                 (cons "move" (move sch thing)))))
                  (set! connections (append (list thing) connections))
@@ -523,6 +524,17 @@
     (lambda (args)
       (cond [(hash-empty? args)
               (look-area (quality 'location))]))))
+
+(define commands
+  (lambda (sch thing)
+    (define quality (quality-getter thing))
+    (define set-quality! (quality-setter thing))
+    (define add-to-out ((string-quality-appender thing) 'client-out))
+    (lambda (args)
+      (let ([commands (quality 'commands)])
+        (add-to-out (format
+                     "You have the following commands: ~a"
+                     (oxfordize-list (hash-keys commands))))))))
 
 (define move
   (lambda (sch thing)
