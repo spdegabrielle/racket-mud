@@ -89,6 +89,9 @@
 (define name
   (lambda (thing)
     (thing (lambda (thing) (thing-name thing)))))
+(define set-name!
+  (lambda (thing)
+    (thing (lambda (thing) (thing-name thing)))))
 
 (define quality-getter
   (lambda (thing)
@@ -173,6 +176,30 @@
            ((hash-ref (mud-hooks mud) 'move) thing ((hash-ref (mud-hooks mud) 'room) 'crossed-candles-inn))])
         (when reply (add-to-out reply))))))
 
+(define parse-args
+  (lambda (args)
+  ; before parsing arguments, take any elements (an element which starts with -- and has =") until (an element that ends with ") and join them together.
+    (define results (make-hash))
+    (map
+     (lambda (arg)
+       (cond
+         [(and (> (string-length arg) 2)
+               (string=? (substring arg 0 2) "--"))
+          (let ([sparg (string-split arg "=")])
+            (hash-set! results (substring (car sparg) 2) (cdr sparg)))]
+         [(string=? (substring arg 0 1) "-")
+          (map (lambda (char)
+                 (hash-set! results char #t))
+               (string->list (substring arg 1)))]
+         [else (hash-set! results 'line
+                          (cond [(hash-has-key? results 'line)
+                                 (append (hash-ref results 'line)
+                                         (list arg))]
+                                [else (list arg)]))]))
+     args)
+    (when (hash-has-key? results 'line) (hash-set! results 'line (string-join (hash-ref results 'line))))
+    results))
+
 (define client-parser
   (lambda (mud sch thing)
     (define quality (quality-getter thing)) (define set-quality! (quality-setter thing))
@@ -185,7 +212,7 @@
         (log-debug "Preparing to parse the line ~a from ~a. Its commands are ~a" line (name thing) commands)
         (when (> (string-length line) 0)
           (let* ([spline (string-split line)]
-                 [input-command (car spline)] [args (string-join (cdr spline))])
+                 [input-command (car spline)] [args (parse-args (cdr spline))])
             (cond [(hash-has-key? commands input-command)
                    ((hash-ref commands input-command) args)]
                   [(and location (hash-has-key? ((quality-getter location) 'exits) (string->symbol input-command)))
@@ -403,22 +430,33 @@
   (lambda (sch thing)
     (define quality (quality-getter thing)) (define set-quality! (quality-setter thing))
     (define add-to-out ((string-quality-appender thing) 'client-out))
+    (define look-area
+      (lambda (area)
+        (let* ([area-quality (quality-getter area)]
+               [area-desc (area-quality 'description)]
+               [area-exits (area-quality 'exits)]
+               [area-contents (area-quality 'contents)])
+          (add-to-out (format "[~a]" (name area)))
+          (when area-desc (add-to-out (format "~a" area-desc)))
+          (when area-contents
+            (let ([massive-contents
+                   (things-with-quality area-contents 'mass)])
+              (unless (null? massive-contents)
+                (add-to-out
+                 (format "Contents: ~a"
+                         (oxfordize-list
+                          (map (lambda (thing)
+                                 (name thing))
+                          massive-contents)))))
+              (when area-exits
+                (add-to-out
+                 (format "Exits: ~a"
+                         (oxfordize-list
+                          (map symbol->string
+                               (hash-keys area-exits)))))))))))
     (lambda (args)
-      (let* ([location (quality 'location)]
-             [location-quality (quality-getter location)]
-             [location-desc (location-quality 'description)]
-             [location-exits (location-quality 'exits)]
-             [location-contents (location-quality 'contents)])
-        (add-to-out (format "[~a]" (location (lambda (l) (thing-name l)))))
-        (when location-desc (add-to-out (format "~a" location-desc)))
-        (when location-contents
-          (let ([massive-contents (things-with-quality location-contents 'mass)])
-          (unless (null? massive-contents)
-            (add-to-out
-             (format "Contents: ~a"
-                     (oxfordize-list
-                      (map (lambda (thing) (thing (lambda (thing) (thing-name thing)))) massive-contents)))))))
-        (when location-exits (add-to-out (format "Exits: ~a" (oxfordize-list (map symbol->string (hash-keys location-exits))))))))))
+      (cond [(hash-empty? args)
+              (look-area (quality 'location))]))))
 
 (define move
   (lambda (sch thing)
