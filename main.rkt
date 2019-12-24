@@ -1,7 +1,7 @@
 #lang racket
 
 (struct mud (name services hooks things events) #:mutable)
-(struct thing (name nouns adjectives qualities) #:mutable)
+(struct thing (name nouns adjectives qualities handler) #:mutable)
 
 (struct client-attributes (commands in out) #:mutable)
 (struct mudsocket-client (in out ip port) #:mutable)
@@ -39,23 +39,23 @@
     (lambda (name #:nouns [nouns #f]
                   #:adjectives [adjectives #f]
                   #:qualities [qualities #f])
-      (let* ([thing (thing name (merge-stringy-lists nouns) (merge-stringy-lists adjectives) (cond [qualities (make-hash (filter values qualities))] [else (make-hash)]))])
+      (let* ([thing (thing name (merge-stringy-lists nouns) (merge-stringy-lists adjectives) (cond [qualities (make-hash (filter values qualities))] [else (make-hash)]) (void))])
         (define handler (lambda (event) (event thing)))
+        (set-thing-handler! thing handler)
         (when qualities
           (hash-map (thing-qualities thing)
                     (lambda (id quality)
-                      (log-debug "Looking at ~a quality of ~a" id (thing-name thing))
                       (let ([apply-proc-key 
                              (string->symbol (string-join (list "apply-" (symbol->string id) "-quality") ""))]
                             [hooks (mud-hooks mud)])
-                        (log-debug "Hooks are ~a, apply-proc-key is ~a" (hash-keys hooks) apply-proc-key)
                         (when (hash-has-key? hooks apply-proc-key)
-                          ((hash-ref hooks apply-proc-key) thing))))))
+                          ((hash-ref hooks apply-proc-key) handler))))))
         (sch (lambda (mud) (set-mud-things! mud (append (list handler) (mud-things mud)))))
         handler))))
     
-; (define make-thing (lambda (mud) (lambda (name) (mud (thunk (set-mud-things! mud (append (list (thing name (list) (list) (list))) (mud-things mud))))))))
-; ((make-thing tmud) "Bill")
+(define things-with-quality
+  (lambda (things quality)
+    (filter values (map (lambda (thing) (thing (lambda (thing) (cond [(hash-has-key? (thing-qualities thing) quality) (thing-handler thing)][else #f])))) things))))
 
 (define name
   (lambda (thing)
@@ -75,7 +75,6 @@
 (define quality-setter
   (lambda (thing)
     (lambda (quality value)
-      (log-debug "Setting the ~a quality of ~a to ~a" quality (name thing) value)
       (thing (lambda (thing) (hash-set! (thing-qualities thing) quality value))))))
 
 (define string-quality-appender
@@ -157,27 +156,33 @@
 (define mudmap
   (lambda ([areas (make-hash)])
     (lambda (mud sch make)
-      (hash-set! (mud-hooks mud) 'rooms areas)
-      (hash-set! (mud-hooks mud) 'room (lambda (id) (hash-ref areas id)))
-      (hash-set! (mud-hooks mud) 'move (lambda (mover destination)
-                                         (let* ([mover-quality (quality-getter mover)]
-                                               [set-mover-quality! (quality-setter mover)]
-                                               [destination-quality (quality-getter destination)]
-                                               [set-destination-quality! (quality-setter destination)]
-                                               [location (mover-quality 'location)])
-                                           (when location
-                                             (let ([location-quality
-                                                    (quality-getter location)]
-                                                   [set-location-quality!
-                                                    (quality-setter (mover-quality 'location))])
-                                               (when (location-quality 'contents)
-                                                 (set-location-quality! 'contents
-                                                                        (remove mover
-                                                                                (location-quality 'contents))))))
-                                           (set-mover-quality! 'location destination)
-                                           (set-destination-quality! 'contents
-                                                                     (append (list mover)
-                                                                             (destination-quality 'contents))))))
+      (hash-set!
+       (mud-hooks mud) 'rooms
+       areas)
+      (hash-set!
+       (mud-hooks mud) 'room
+       (lambda (id) (hash-ref areas id)))
+      (hash-set!
+       (mud-hooks mud) 'move
+       (lambda (mover destination)
+         (let* ([mover-quality (quality-getter mover)]
+                [set-mover-quality! (quality-setter mover)]
+                [destination-quality (quality-getter destination)]
+                [set-destination-quality! (quality-setter destination)]
+                [location (mover-quality 'location)])
+           (when location
+             (let ([location-quality
+                    (quality-getter location)]
+                   [set-location-quality!
+                    (quality-setter (mover-quality 'location))])
+               (when (location-quality 'contents)
+                 (set-location-quality!
+                  'contents
+                  (remove mover (location-quality 'contents))))))
+           (set-mover-quality! 'location destination)
+           (set-destination-quality!
+            'contents
+            (append (list mover) (destination-quality 'contents))))))
       (hash-map
        areas
        (lambda (id area)
@@ -188,7 +193,11 @@
                   (let ([contents ((quality-getter area) 'contents)]
                         [created-contents (list)])
                     (map (lambda (item)
-                         (set! created-contents (append (list (item make)) created-contents)))
+                           (let ([item (item make)])
+                             (set! created-contents
+                                   (append (list item)
+                                           created-contents))
+                             ((quality-setter item) 'location area)))
                          contents)
                     ((quality-setter area) 'contents created-contents))
                   (hash-map ((quality-getter area) 'exits)
@@ -207,21 +216,55 @@
       (hash-set! (mud-hooks mud)
                 'apply-actions-quality
                 (lambda (thing)
-                  (log-debug "Adding action quality to ~a" (thing-name thing))
                   (let ([created-actions (list)])
                     (for-each
                      (lambda (action)
-                       (let ([record (list thing (car action) (cdr action))])
-                         (set! created-actions (append (list record) created-actions))
+                       (let ([record
+                              (list thing (car action) (cdr action))])
+                         (set! created-actions
+                               (append (list record) created-actions))
                          (let ([chance (car action)])
-                           (hash-set! actions chance (cond [(hash-has-key? actions chance)
-                                                            (append (list record) (hash-ref actions chance))]
-                                                           [else (list record)])))))
-                     (hash-ref (thing-qualities thing) 'actions))
-                    (hash-set! (thing-qualities thing) 'actions created-actions))))
-      (lambda () (void)
-        ; action service tick
-        ))))
+                           (hash-set!
+                            actions chance
+                            (cond [(hash-has-key? actions chance)
+                                   (append (list record)
+                                           (hash-ref actions chance))]
+                                  [else (list record)])))))
+                     ((quality-getter thing) 'actions))
+                    ((quality-setter thing)
+                     'actions created-actions))))
+      (lambda ()
+        (let ([triggered (list)])
+          (hash-map actions
+                    (lambda (chance records)
+                      (for-each (lambda (record)
+                                 (when (<= (random 10000) chance)
+                                   (set! triggered
+                                         (append (list record)
+                                                 triggered))))
+                               records)))
+          (for-each
+           (lambda (action)
+             (let* ([actor (first action)]
+                    [task (third action)]
+                    [actor-quality (quality-getter actor)]
+                    [actor-location (actor-quality 'location)]
+                    [actor-exits (actor-quality 'exits)])
+               (cond
+                 [(string? task)
+                  ;send to things in th environment
+                  (let* ([environment (cond [actor-location actor-location]
+                                            [actor-exits actor])])
+                    (when (procedure? environment)
+                      (let ([environment-contents
+                             ((quality-getter environment) 'contents)])
+                        (for-each
+                         (lambda (thing)
+                           (((string-quality-appender thing) 'client-out)
+                           task))
+                         (things-with-quality environment-contents 'client-out)))))
+                  ])))
+           triggered))))))
 
 
 (define mudsocket
@@ -238,6 +281,7 @@
                                   (list (cons 'commands (make-hash))
                                         (cons 'client-in "")
                                         (cons 'client-out "")
+                                        (cons 'mass 1)
                                         (cons 'mudsocket-in in)
                                         (cons 'mudsocket-out out)
                                         (cons 'mudsocket-ip rip)
@@ -288,11 +332,12 @@
         (add-to-out (format "[~a]" (location (lambda (l) (thing-name l)))))
         (when location-desc (add-to-out (format "~a" location-desc)))
         (when location-contents
-          (unless (null? location-contents)
+          (let ([massive-contents (things-with-quality location-contents 'mass)])
+          (unless (null? massive-contents)
             (add-to-out
              (format "Contents: ~a"
                      (oxfordize-list
-                      (map (lambda (thing) (thing (lambda (thing) (thing-name thing)))) location-contents))))))
+                      (map (lambda (thing) (thing (lambda (thing) (thing-name thing)))) massive-contents)))))))
         (when location-exits (add-to-out (format "Exits: ~a" (oxfordize-list (map symbol->string (hash-keys location-exits))))))))))
 
 (define move
@@ -304,7 +349,6 @@
              [location-quality (quality-getter location)]
              [location-exits (location-quality 'exits)]
              [desired-exit (string->symbol args)])
-        (log-debug "ARGS ARE ~a" args)
         (cond
           [(hash-has-key? location-exits desired-exit)
            (add-to-out (format "You attempt to move ~a" args))
@@ -329,7 +373,6 @@
                        (for-each
                         (λ (evt)
                           (cond [(procedure? evt)
-                                 (log-debug "Calling scheduled event ~a" evt)
                                  (evt this-mud)]
                                 [else (log-warning "Non-procedure event scheduled: ~a" evt)]))
                         sevts)
@@ -337,7 +380,7 @@
                        (for-each (lambda (srv) (srv)) (mud-services this-mud))
                        (set! time (cim))))))
     (define clock (λ (mud)
-                    (log-debug "Starting MUD tick.")
+                    (log-info "Starting MUD tick.")
                     (set! tick (tick mud))
                     (λ () (let tock () (tick) (tock)))))
     (λ (mud)
@@ -423,7 +466,7 @@
   (ghost
    #:name "Alfric"
    #:description "This is Alfric, a ghost that haunts Crossed Candles Inn."
-   #:actions '((10000 . "Alfric floats around a bit."))))
+   #:actions '((3 . "Alfric floats around a bit."))))
   
 (define crossed-candles-inn
   (inn
