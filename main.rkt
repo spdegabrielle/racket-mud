@@ -90,8 +90,8 @@
   (lambda (thing)
     (thing (lambda (thing) (thing-name thing)))))
 (define set-name!
-  (lambda (thing)
-    (thing (lambda (thing) (thing-name thing)))))
+  (lambda (thing name)
+    (thing (lambda (thing) (set-thing-name! thing name)))))
 
 (define quality-getter
   (lambda (thing)
@@ -150,6 +150,7 @@
         (cond
           [(= login-stage 0)
            (set-quality! 'user-name line)
+           (set-name! thing line)
            ; account services
            (cond [((hash-ref (mud-hooks mud) 'account?) line)
                   (set! reply (format "There's a extant account for ~a. If it's yours, enter the password and press ENTER. Otherwise, disconnect [and reconnect]." line))
