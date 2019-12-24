@@ -1,0 +1,3 @@
+[submodule "teraum"]
+	path = teraum
+	url = https://gitlab.com/emsenn/teraum
