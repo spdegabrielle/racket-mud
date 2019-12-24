@@ -1,5 +1,7 @@
 #lang racket
 
+(require racket/date)
+(require racket/serialize)
 (require uuid)
 
 (struct mud (name services hooks things events) #:mutable)
@@ -134,9 +136,6 @@
            (flush-output out))
         (set-quality! 'client-out "")))))
 
-(define account-name?
-  (lambda (name)
-    (hash-has-key? user-accounts name)))
 
 (define client-login-parser
   (lambda (mud sch thing)
@@ -149,15 +148,26 @@
           [(= login-stage 0)
            (set-quality! 'user-name line)
            ; account services
-           (cond [(account-name? line)
-                  (set! reply (format "There's a extant account for ~a. If it's yours, enter the password and press ENTER. Otherwise, disconnect [and reconnect]."))
+           (cond [((hash-ref (mud-hooks mud) 'account?) line)
+                  (set! reply (format "There's a extant account for ~a. If it's yours, enter the password and press ENTER. Otherwise, disconnect [and reconnect]." line))
                   (set! login-stage 1)]
                  [else
                   (let ([pass (substring (uuid-string) 0 8)])
                     (set-quality! 'pass pass)
-                    (log-debug "MUD IS ~a" mud)
+                    ((hash-ref (mud-hooks mud) 'create-account) line pass)
                     (set! reply (format "There's no account named ~a. Your new password is\n\n~a\n\nPress ENTER when you're ready to log in." line pass)))
                   (set! login-stage 9)])]
+          [(= login-stage 1)
+           (log-debug "CHECKING THE PASSWORD of ~a" (quality 'user-name))
+           (log-debug "account is ~a" ((hash-ref (mud-hooks mud) 'account)
+                                       (quality 'user-name)))
+           (cond
+             [(string=? (hash-ref ((hash-ref (mud-hooks mud) 'account)
+                                   (quality 'user-name)) 'pass)
+                        line)
+              (set! reply "Correct. Press ENTER to complete login.")
+              (set! login-stage 9)]
+             [else (set! reply "Incorrect. Type your [desired] user-name and press ENTER.") (set! login-stage 0)])]
           [(= login-stage 9)
            (set-quality! 'client-parser (client-parser mud sch thing))
            ((hash-ref (mud-hooks mud) 'move) thing ((hash-ref (mud-hooks mud) 'room) 'crossed-candles-inn))])
@@ -182,6 +192,46 @@
                    ((move sch thing) input-command)]
                   [else (set! reply "Invalid command.")])))
         (when reply (add-to-out reply))))))
+
+(define accounts
+  (lambda ([account-file "user-accounts.rktd"])
+    (define accounts (make-hash))
+    (lambda (mud sch make)
+      (define load-accounts
+        (lambda ()
+          (when (file-exists? account-file)
+            (log-debug "Loading accounts from ~a" account-file)
+            (with-handlers ([exn:fail:filesystem:errno?
+                             (lambda (exn) (log-warning "~a" exn))])
+              (with-input-from-file account-file
+                (lambda () (set! accounts (deserialize (read)))))))))
+      (define save-accounts
+        (lambda () ; save accounts
+          (cond
+            [(serializable? accounts)
+             (with-output-to-file account-file
+               (lambda () (write (serialize accounts)))
+               #:exists 'replace)
+             (load-accounts)]
+            [else (log-warning "Account data not serializable.")])))
+      (define create-account
+        (lambda (name pass)
+          (log-info "Creating new user account ~a" name)
+          (hash-set! accounts name (make-hash
+                                    (list
+                                     (cons 'name name)
+                                     (cons 'pass pass)
+                                     (cons 'birth-time (current-date)))))
+          (save-accounts)))
+      (define account? (lambda (name) (hash-has-key? accounts name)))
+      (define account (lambda (name) (hash-ref accounts name)))
+      (let ([set-hook! (lambda (hook value) (hash-set! (mud-hooks mud) hook value))])
+        (set-hook! 'save-accounts save-accounts)
+        (set-hook! 'create-account create-account)
+        (set-hook! 'account? account?)
+        (set-hook! 'account account))
+      (load-accounts)
+      #f)))
 
 (define mudmap
   (lambda ([areas (make-hash)])
@@ -418,6 +468,7 @@
       (log-info "Loading MUD ~a" (mud-name this-mud))
       (define make (make-thing this-mud sch))
       (set-mud-services! this-mud (filter values (map (lambda (srv) (srv this-mud sch make)) (mud-services this-mud))))
+      (log-debug "Hooks are now ~a" (hash-keys (mud-hooks this-mud)))
       (thread (clock mud))
       (thread (λ () (let loop () (define l (sync logr))
                       (printf "~a, tick #~a: ~a\n"
@@ -462,6 +513,18 @@
     (outdoors #:name name #:description description
               #:exits exits #:contents contents)))
 
+(define lookable
+  (lambda (#:name name #:description [description #f]
+           #:actions [actions #f])
+    (lambda (make)
+      (make name
+            #:qualities
+            (list
+             (cond [description (cons 'description description)]
+                   [else #f])
+             (cond [actions (cons 'actions actions)]
+                   [else #f]))))))
+
 (define person
   (lambda (#:name name #:description [description #f]
            #:contents [contents #f] #:actions [actions #f]
@@ -499,12 +562,17 @@
 
 (define lexandra
   (human #:name "Lexandra Terr"))
+
+(define windows
+  (lookable #:name "windows"))
+(define cots
+  (lookable #:name "cots"))
   
 (define crossed-candles-inn
   (inn #:name "Crossed Candles Inn"
-       #:description "This is the Crossed Candles Inn: a simple wooden shack with several shuttered windows. Accomodations consist of a single large room with wooden cots. The Inn is said to be haunted by the ghost of a human man named Alfric. The innkeeper is a short human woman named Lexandra Terr. She is a retired thief, and maintains a collection of various maps. A door leads out to Arathel County."
+       #:description "This is the Crossed Candles Inn: a simple wooden shack with several shuttered windows. Accomodations consist of a single large room with wooden cots. A door leads out to Arathel County."
        #:exits '((out . outside-crossed-candles-inn))
-       #:contents (list alfric lexandra)))
+       #:contents (list alfric lexandra windows cots)))
 
 (define outside-crossed-candles-inn
   (road #:name "outside Crossed Candles Inn"
@@ -522,5 +590,6 @@
 
 (define test-mud (start-mud "TestMUD"
                             (list (mudsocket)
+                                  (accounts)
                                   (actions)
                                   (mudmap teraum-map))))
