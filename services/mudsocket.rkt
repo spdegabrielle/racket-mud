@@ -4,6 +4,7 @@
 (require "../commands/commands.rkt")
 (require "../commands/look.rkt")
 (require "../commands/move.rkt")
+(require "../commands/trivia.rkt")
 (provide mudsocket)
 (define mudsocket
   (lambda (#:port [port 4242])
@@ -36,7 +37,8 @@
                                (list
                                 (cons "commands" (commands sch thing))
                                 (cons "look" (look sch thing))
-                                (cons "move" (move sch thing)))))
+                                (cons "move" (move sch thing))
+                                (cons "trivia" (trivia sch thing)))))
                  (set! connections (append (list thing) connections))
                  (log-debug "Accepted connection from ~a:~a"
                             rip rport)

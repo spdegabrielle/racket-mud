@@ -10,7 +10,9 @@
          string-quality-appender
          name
          set-name!
-         things-with-quality)
+         things-with-quality
+         matches?
+         search)
 
 (struct mud (name services hooks things events) #:mutable)
 (struct thing (name nouns adjectives qualities handler) #:mutable)
@@ -18,6 +20,30 @@
 (struct exn:mud exn:fail ())
 (struct exn:mud:thing exn:mud ())
 (struct exn:mud:thing:creation exn:mud:thing ())
+
+(define (matches? thing term)
+    (cond [(string=? (string-downcase (name thing)) term) #t]
+          [else #f]))
+
+(define search
+  (lambda (things term)
+    (let ([matches
+           (filter
+            values
+            (map
+             (lambda (thing)
+               (cond [(matches? thing term) thing]
+                     [else #f]))
+             things))])
+      (cond
+        [(= (length matches) 0)
+         "No matching things."]
+        [(= (length matches) 1)
+         (car matches)]
+        [else
+         (format "Multiple matches: ~a"
+                 (oxfordize-list
+                  (map (lambda (thing) (name thing)) matches)))]))))
 
 (define make-thing
   (lambda (mud sch)
