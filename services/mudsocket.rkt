@@ -19,6 +19,7 @@
                                   (list
                                    (cons 'channels (list))
                                    (cons 'commands (make-hash))
+                                   (cons 'contents (list))
                                    (cons 'client-in "")
                                    (cons 'client-out "")
                                    (cons 'mass 1)

@@ -1,9 +1,20 @@
 #lang racket
 
-(provide force-stringy-list
+(provide filter-multiple-word-strings-from-strings
+         force-stringy-list
          merge-stringy-lists
          oxfordize-list
          str-and-sym-list-joiner)
+
+(define (filter-multiple-word-strings-from-strings strings)
+  (filter values
+          (map
+           (lambda (str)
+             (cond
+               [(> (length (string-split str)) 1)
+                str]
+               [else #f]))
+           strings)))
 
 (define (oxfordize-list strings)
   (cond
