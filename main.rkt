@@ -6,7 +6,7 @@
 (require "./services/actions.rkt")
 (require "./services/talker.rkt")
 (require "./services/mudmap.rkt")
-(require "./teraum/map.rkt")
+(require "./teraum/main.rkt")
 
 (define test-mud (start-mud "TestMUD"
                             (list (mudsocket)

@@ -10,12 +10,16 @@
     (lambda (args)
       (let* ([location (quality 'location)]
              [location-quality (quality-getter location)]
-             [location-exits (location-quality 'exits)]
-             [desired-exit (string->symbol args)])
+             [location-exits (location-quality 'exits)])
         (cond
-          [(hash-has-key? location-exits desired-exit)
-           (add-to-out (format "You attempt to move ~a" args))
-           (sch (lambda (mud)
-                  ((hash-ref (mud-hooks mud) 'move) thing (hash-ref location-exits desired-exit))
-                  ((look sch thing) (make-hash))))]
-          [else (add-to-out "Invalid exit.")])))))
+          [(hash-has-key? args 'line)
+           (let ([desired-exit (string->symbol (hash-ref args 'line))])
+             (cond 
+               [(hash-has-key? location-exits desired-exit)
+                (add-to-out (format "You attempt to move ~a" (hash-ref args 'line)))
+                (sch (lambda (mud)
+                       ((hash-ref (mud-hooks mud) 'move) thing (hash-ref location-exits desired-exit))
+                       ((look sch thing) (make-hash))))]
+               [else (add-to-out "Invalid exit.")]))]
+          [else
+           (add-to-out "You must use this command with an exit. You can find those by using the \"look\" command.")])))))

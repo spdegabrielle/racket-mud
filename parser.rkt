@@ -63,9 +63,9 @@
           [(= login-stage 9)
            (set-quality! 'client-parser (client-parser mud sch thing))
            (let ([hooks (mud-hooks mud)])
-             ((hash-ref hooks 'move) thing ((hash-ref hooks 'room) 'crossed-candles-inn))
-             ((hash-ref hooks 'tune-in) "cq" thing)
-           ((hash-ref (mud-hooks mud) 'move) thing ((hash-ref (mud-hooks mud) 'room) 'crossed-candles-inn)))])
+             ((hash-ref hooks 'move) thing ((hash-ref hooks 'room) 'green-delta/game/south-arathel/crossed-candles-inn))
+             ((hash-ref hooks 'tune-in) "cq" thing))
+           (add-to-out "You've been moved into the Crossed Candles Inn. Take a \"look\" around, and \"move\" or directly input exit names. You may chat with the \"cq\" command. Please remember this project is in the earliest stages of development.")])
         (when reply (add-to-out reply))))))
 
 (define parse-args
@@ -108,7 +108,7 @@
             (cond [(hash-has-key? commands input-command)
                    ((hash-ref commands input-command) args)]
                   [(and location (hash-has-key? ((quality-getter location) 'exits) (string->symbol input-command)))
-                   ((move sch thing) input-command)]
+                   ((move sch thing) (hash 'line input-command))]
                   [(member input-command (quality 'channels))
                    (when (hash-has-key? args 'line)
                      ((hash-ref (mud-hooks mud) 'broadcast)
