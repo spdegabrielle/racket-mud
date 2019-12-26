@@ -15,3 +15,10 @@
                                   (actions)
                                   (mudmap teraum-map)
                                   )))
+;        K-P
+;        |
+;        D-+-L
+;          |^
+;        s-+
+;
+;

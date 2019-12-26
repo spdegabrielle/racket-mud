@@ -36,10 +36,9 @@
        (lambda (id area)
          (let ([area (area make)])
            (hash-set! areas id area))))
-      (printf "Preloaded ~a areas.\n" (length (hash-keys areas)))
+      (log-debug "Preloaded ~a areas.\n" (length (hash-keys areas)))
       (hash-map areas
                 (lambda (id area)
-                  (printf "Loading area\n   ~a\n" id)
                   (let ([contents ((quality-getter area) 'contents)]
                         [created-contents (list)])
                     (map (lambda (item)
