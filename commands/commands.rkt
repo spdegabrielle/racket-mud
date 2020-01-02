@@ -1,9 +1,9 @@
 #lang racket
-(require "../engine.rkt")
-(require "../utilities/strings.rkt")
+(require "../engine.rkt"
+         "../utilities/strings.rkt")
 (provide commands)
 (define commands
-  (lambda (sch thing)
+  (lambda (thing)
     (define quality (quality-getter thing))
     (define set-quality! (quality-setter thing))
     (define add-to-out ((string-quality-appender thing) 'client-out))

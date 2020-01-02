@@ -2,24 +2,87 @@
 
 (require "./utilities/strings.rkt")
 
-(provide (struct-out mud)
+(provide make-engine
+         run-engine
+         (struct-out mud)
          (struct-out thing)
-         start-mud
          quality-getter
          quality-setter
          string-quality-appender
-         name
-         set-name!
          things-with-quality
          matches?
-         search)
+         search
+         name
+         rename!)
 
-(struct mud (name services hooks things events) #:mutable)
-(struct thing (name nouns adjectives qualities handler) #:mutable)
+(struct mud (name logger tick events things hooks maker) #:mutable)
+(struct thing (name grammar qualities mud) #:mutable)
 
-(struct exn:mud exn:fail ())
-(struct exn:mud:thing exn:mud ())
-(struct exn:mud:thing:creation exn:mud:thing ())
+(define (thing-maker mud)
+  (lambda (name
+           #:nouns [nouns #f]
+           #:adjectives [adjectives #f]
+           #:qualities [qualities #f])
+  (log-debug "Making a thing named ~a" name)
+  (let ([thing
+         (thing name
+                (make-hash
+                 (list
+                  (cons 'nouns
+                        (merge-stringy-lists nouns))
+                  (cons 'adjectives
+                        (merge-stringy-lists adjectives))))
+                (cond
+                  [qualities
+                   (make-hash (filter values qualities))]
+                  [else (make-hash)])
+                mud)])
+    (define handler (λ (f) (f thing)))
+    (when qualities
+      (hash-map (thing-qualities thing)
+                (λ (id quality)
+                  (let ([apply-proc-key
+                         (str-and-sym-list-joiner
+                          (list "apply" id "quality") "-")]
+                        [hooks (mud-hooks (cdr mud))])
+                    (when (hash-has-key? hooks apply-proc-key)
+                      ((hash-ref hooks apply-proc-key) handler))))))
+    (set-mud-things! (cdr mud) (append (list handler) (mud-things (cdr mud))))
+    handler)))
+
+(define (quality-getter thing)
+  (λ (quality)
+    (thing (lambda (thing)
+             (with-handlers
+                 ([exn:fail:contract?
+                   (λ (exn)
+                     (log-warning "Tried to get non-existent ~a quality from ~a." quality (thing-name thing))
+                     #f)])
+               (hash-ref (thing-qualities thing) quality))))))
+
+(define (quality-setter thing)
+  (λ (quality value)
+    (log-debug "Setting quality ~a of thing ~a to ~a"
+               quality (name thing)
+               value)
+    (thing (λ (thing) (hash-set! (thing-qualities thing) quality value)))))
+
+(define string-quality-appender
+  (lambda (thing)
+    (lambda (quality)
+      (lambda (value [newline #t])
+        (let* ([get-quality (quality-getter thing)]
+               [set-quality! (quality-setter thing)]
+               [current-string (get-quality quality)])
+          (cond
+            [(> (string-length current-string) 0)
+             (set-quality! quality (string-join (list current-string value)
+                                                (cond [newline "\n"] [else ""])))]
+            [else (set-quality! quality (format "~a" value))]))))))
+
+(define (things-with-quality things quality)
+  (log-debug "Looking at things ~a for quality ~a" things quality)
+    (filter values (map (λ (thing) (let ([result (thing (λ (thing) (hash-has-key? (thing-qualities thing) quality)))]) (cond [result thing][else result]))) things)))
 
 (define (matches? thing term)
     (cond [(string=? (string-downcase (name thing)) term) #t]
@@ -44,104 +107,76 @@
          (format "Multiple matches: ~a"
                  (oxfordize-list
                   (map (lambda (thing) (name thing)) matches)))]))))
-
-(define make-thing
-  (lambda (mud sch)
-    (lambda (name #:nouns [nouns #f]
-                  #:adjectives [adjectives #f]
-                  #:qualities [qualities #f])
-      (log-debug "Making a thing named ~a" name)
-      (let* ([thing (thing name (merge-stringy-lists nouns) (merge-stringy-lists adjectives) (cond [qualities (make-hash (filter values qualities))] [else (make-hash)]) (void))])
-        (define handler (lambda (event) (event thing)))
-        (set-thing-handler! thing handler)
-        (when qualities
-          (hash-map (thing-qualities thing)
-                    (lambda (id quality)
-                      (let ([apply-proc-key 
-                             (str-and-sym-list-joiner (list "apply" id "quality") "-")]
-                            [hooks (mud-hooks mud)])
-                        (when (hash-has-key? hooks apply-proc-key)
-                          ((hash-ref hooks apply-proc-key) handler))))))
-        (sch (lambda (mud) (set-mud-things! mud (append (list handler) (mud-things mud)))))
-        handler))))
-
-(define things-with-quality
-  (lambda (things quality)
-    (filter values (map (lambda (thing) (thing (lambda (thing) (cond [(hash-has-key? (thing-qualities thing) quality) (thing-handler thing)][else #f])))) things))))
-
 (define name
   (lambda (thing)
     (thing (lambda (thing) (thing-name thing)))))
-(define set-name!
+(define rename!
   (lambda (thing name)
     (thing (lambda (thing) (set-thing-name! thing name)))))
 
-(define quality-getter
-  (lambda (thing)
-    (lambda (quality) (thing (lambda (thing)
-                               (with-handlers
-                                   ([exn:fail:contract?
-                                     (lambda (exn)
-                                       (log-warning "Tried to get non-existent ~a quality from ~a."
-                                                    quality (thing-name thing))
-                                       #f)])
-                                 (hash-ref (thing-qualities thing) quality)))))))
+; Given a name and perhaps a sequence of functions, returns a pair, the first element of which is the engine's scheduling function and the second element of which is the MUD's current state.
+(define (make-engine name [events #f])
+  (define l (make-logger 'MUD))
+  (define L (make-log-receiver l 'debug))
+  (current-logger l)
+  (define M (mud name ; MUD's name
+                 (cons l L) ; logger and log-receiver
+                 0 ; tick-count
+                 (cond [events events][else '()]) ; scheduled events
+                 '() ; things
+                 (make-hash) ; hooks
+                 (void))) ; maker
+  (define (s e) (when (procedure? e) (set-mud-events! M (append (mud-events M) (list e)))))
+  (define R (cons s M))
+  (set-mud-maker! M (thing-maker R))
+  ; M : state, s : scheduler, R: pair of scheduler and state
+  (log-debug "Made MUD engine named ~a." name)
+  R)
 
-(define quality-setter
-  (lambda (thing)
-    (lambda (quality value)
-      (thing (lambda (thing) (hash-set! (thing-qualities thing) quality value))))))
+; Given the MUD's current state, calls all scheduled functions and returns the MUD's new state.
+(define (tick R)
+  ; "Le temps est ce qui empêche que tout soit donné tout d'un coup."
+  (let* ([state (cdr R)]
+         [events (mud-events state)])
+    (let loop ()
+      (unless (null? events)
+        (let ([event (car events)])
+          (let ([event-result (event R)])
+            (when event-result (set! R event-result)))
+          (set! events (cdr events))
+          (let ([current-state (cdr R)])
+            (set-mud-events! current-state (cdr (mud-events current-state))))
+        (loop))))
+    R))
 
-(define string-quality-appender
-  (lambda (thing)
-    (lambda (quality)
-      (lambda (value [newline #t])
-        (let* ([get-quality (quality-getter thing)]
-               [set-quality! (quality-setter thing)]
-               [current-string (get-quality quality)])
-          (cond
-            [(> (string-length current-string) 0)
-             (set-quality! quality (string-join (list current-string value)
-                                                (cond [newline "\n"] [else ""])))]
-            [else (set-quality! quality (format "~a" value))]))))))
+; Given a MUD's state, sets up a thread for "ticking" the state forward. Passes through the current state.
+(define (run-engine R)
+  (let ([S (car R)] [M (cdr R)])
+    ; S : scheduler, M : state
+    (define (cim) (current-inexact-milliseconds))
+    (define t (cim))
+    (thread
+     (λ ()
+       (let loop ()
+         (define q (sync (cdr (mud-logger M))))
+         (printf "~a, tick #~a: ~a\n"
+                 (vector-ref q 0) (mud-tick M) (vector-ref q 1))
+         (loop))))
+    (thread
+     (λ ()
+       (let loop ()
+         (when (> (- (cim) t) 333)
+           (set-mud-tick! M (add1 (mud-tick M)))
+           (set! R (tick R)) (set! t (cim)))
+         (loop))))
+    R))
 
-(define make-mud
-  (λ ([name "Racket-MUD"] [services (list)])
-    (define cim (λ () (current-inexact-milliseconds)))
-    (define this-mud (mud name services (make-hash) (list) (list)))
-    (define sevts (list)) (define things (list))
-    (define sch (λ (evt) (set! sevts (append (list evt) sevts))))
-    (define logs (make-logger 'MUD)) (define logr (make-log-receiver logs 'debug))
-    (define tc 0) (define time (cim))
-    (define tick (λ (mud)
-                   (λ ()
-                     (when (> (- (cim) time) 333) (set! tc (+ tc 1))
-                       (for-each
-                        (λ (evt)
-                          (cond [(procedure? evt)
-                                 (evt this-mud)]
-                                [else (log-warning "Non-procedure event scheduled: ~a" evt)]))
-                        sevts)
-                       (set! sevts '())
-                       (for-each (lambda (srv) (srv)) (mud-services this-mud))
-                       (set! time (cim))))))
-    (define clock (λ (mud)
-                    (log-info "Starting MUD tick.")
-                    (set! tick (tick mud))
-                    (λ () (let tock () (tick) (tock)))))
-    (λ (mud)
-      (current-logger logs)
-      (log-info "Loading MUD ~a" (mud-name this-mud))
-      (define make (make-thing this-mud sch))
-      (set-mud-services! this-mud (filter values (map (lambda (srv) (log-debug "Loading ~a" srv) (srv this-mud sch make)) (mud-services this-mud))))
-      (log-debug "Loaded hooks are ~a" (hash-keys (mud-hooks this-mud)))
-      (thread (clock mud))
-      (thread (λ () (let loop () (define l (sync logr))
-                      (printf "~a, tick #~a: ~a\n"
-                              (vector-ref l 0) tc (vector-ref l 1))
-                      (loop))))
-      sch)))
+; So to use:
 
-(define start-mud
-  (lambda (name services)
-    (let ([m (make-mud name services)]) (m m))))
+; (define teraum (run-engine (make-engine "Teraum")))
+; (define schedule (car teraum))
+; (schedule (lambda (R)
+;    (let ([same-scheduler (car R)]
+;          [mud-state (cdr R)])
+;    (log-debug "Current events are ~a"
+;       (mud-events mud-state)))

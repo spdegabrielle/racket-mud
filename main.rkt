@@ -1,17 +1,19 @@
 #lang racket
 
-(require "./engine.rkt")
-(require "./services/mudsocket.rkt")
-(require "./services/accounts.rkt")
-(require "./services/actions.rkt")
-(require "./services/talker.rkt")
-(require "./services/mudmap.rkt")
-(require "./teraum/main.rkt")
+(require "accounts.rkt"
+         "actions.rkt"
+         "engine.rkt"
+         "mudmap.rkt"
+         "mudsocket.rkt"
+         "talker.rkt"
+         "./teraum/main.rkt")
 
-(define test-mud (start-mud "TestMUD"
-                            (list (mudsocket)
-                                  (accounts)
-                                  (talker)
-                                  (actions)
-                                  (mudmap teraum-map)
-                                  )))
+(define teraum
+  (run-engine
+   (make-engine
+    "Teraum"
+    (list (accounts)
+          (actions)
+          (mudmap teraum-map)
+          (mudsocket)
+          (talker)))))
