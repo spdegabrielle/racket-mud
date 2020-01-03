@@ -21,10 +21,15 @@
        (λ (listener)
          (define add-to-out
            ((string-quality-appender listener) 'client-out))
-         (add-to-out (format "(~a) ~a: ~a"
-                             chan
-                             (name speaker)
-                             message)))
+         (let ([broadcast-message (format "(~a) ~a: ~a"
+                                          chan
+                                          (name speaker)
+                                          message)])
+           (add-to-out broadcast-message)
+           (when (string=? chan "cq")
+             (with-output-to-file "talker-log.rktd"
+               (λ () (printf (format "~a\n" broadcast-message)))
+               #:exists 'append))))
        (hash-ref channels chan)))
     (define (tune-in chan listener)
       (define
