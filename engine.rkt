@@ -62,7 +62,7 @@
 
 (define (quality-setter thing)
   (λ (quality value)
-    (log-debug "Setting quality ~a of thing ~a to ~a"
+    (log-debug "Setting ~a of ~a to ~a"
                quality (name thing)
                value)
     (thing (λ (thing) (hash-set! (thing-qualities thing) quality value)))))
@@ -165,7 +165,7 @@
     (thread
      (λ ()
        (let loop ()
-         (when (> (- (cim) t) 333)
+         (when (> (- (cim) t) 200)
            (set-mud-tick! M (add1 (mud-tick M)))
            (set! R (tick R)) (set! t (cim)))
          (loop))))

@@ -1,9 +1,13 @@
 #lang racket
-(provide 
+(provide
+ setup-stringy-quality-value
+ setup-listy-quality-value
+ std-or-qual
          area
          area/outdoors
          area/outdoors/fort
          area/outdoors/road
+         area/outdoors/river
          area/outdoors/rural-road
          area/outdoors/urban-district
          area/outdoors/urban-street
@@ -19,31 +23,81 @@
          person/human/innkeep
          person/ghost)
 
-(define area
-  (lambda (#:name name #:nouns [nouns #f] #:adjectives [adjectives #f]
-           #:description [description #f] #:exits [exits #f]
-           #:contents [contents #f] #:actions [actions #f]
-           #:trivia [trivia #f])
-    (lambda (make)
-      (make name
-            #:nouns nouns  #:adjectives adjectives
-            #:qualities
-            (list (cons 'exits
-                        (cond [exits (make-hash exits)] [else (make-hash)]))
-                  (cond [description (cons 'description description)]
-                        [else #f])
-                  (cons 'contents
-                        (cond [contents contents] [else (list)]))
-                  (cond [trivia (cons 'trivia trivia)]
-                        [else #f])
-                  (cond [actions (cons 'actions actions)]
-                        [else #f]))))))
-(define area/outdoors
-  (lambda (#:name name #:nouns [nouns #f] #:adjectives [adjectives #f]
-            #:description [description #f] #:exits [exits #f]
-           #:contents [contents #f] #:actions [actions #f] #:trivia [trivia #f])
-    (area #:name name  #:description description
-          #:exits exits #:contents contents #:actions actions #:trivia trivia)))
+(define (setup-stringy-quality-value
+         std-qual
+         qual
+         append-qual
+         [separator " "])
+  (cond
+    [qual
+     (cond [append-qual
+            (format "~a~a~a"
+                    std-qual
+                    separator
+                    qual)]
+           [else qual])]
+    [else std-qual]))
+
+(define (setup-listy-quality-value
+         std-qual
+         qual
+         append-qual)
+  (cond
+    [qual
+     (cond [append-qual
+            (append qual std-qual)]
+           [else qual])]
+    [else std-qual]))
+
+(define (std-or-qual
+         std-qual
+         qual)
+  (setup-stringy-quality-value
+   std-qual qual #f))
+   
+
+(define (area
+         #:name [name #f]
+         #:append-name [append-name #f]
+         #:nouns [nouns #f]
+         #:adjectives [adjectives #f]
+         #:description [description #f]
+         #:append-description [append-description #f]
+         #:exits [exits #f]
+         #:contents [contents #f]
+         #:actions [actions #f]
+         #:trivia [trivia #f])
+  (λ (make)
+    (let ([std-name "area"]
+          [std-description "This is an area."])
+    (make
+     (setup-stringy-quality-value std-name name append-name ", ")
+     #:nouns nouns
+     #:adjectives adjectives
+     #:qualities
+     (list (cons 'exits
+                 (cond [exits (make-hash exits)] [else (make-hash)]))
+           (cond [description (cons 'description (setup-stringy-quality-value std-description description append-description))]
+                 [else #f])
+           (cons 'contents
+                 (cond [contents contents] [else (list)]))
+           (cond [trivia (cons 'trivia trivia)]
+                 [else #f])
+           (cond [actions (cons 'actions actions)]
+                 [else #f]))))))
+
+(define (area/outdoors
+         #:name [name #f]
+         #:nouns [nouns #f]
+         #:adjectives [adjectives #f]
+         #:description [description #f]
+         #:exits [exits #f]
+         #:contents [contents #f]
+         #:actions [actions #f]
+         #:trivia [trivia #f])
+  (area #:name name  #:description description
+        #:exits exits #:contents contents #:actions actions #:trivia trivia))
+
 (define area/outdoors/fort
   (lambda (#:name name #:nouns [nouns #f] #:adjectives [adjectives #f]
             #:description [description #f] #:exits [exits #f]
@@ -51,6 +105,26 @@
     (area/outdoors #:name name #:description description
            #:exits exits #:contents contents #:actions actions
            #:trivia trivia)))
+(define (area/outdoors/river
+         #:name [name #f]
+         #:nouns [nouns #f]
+         #:adjectives [adjectives #f]
+         #:description [description #f]
+         #:exits [exits #f]
+         #:contents [contents #f]
+         #:actions [actions #f]
+         #:trivia [trivia #f])
+  (let ([std-name "river"]
+        [std-description "This is a river."])
+    (area/outdoors
+     #:name (std-or-qual std-name name)
+     #:nouns nouns
+     #:adjectives adjectives
+     #:description std-or-qual std-description description
+     #:exits exits
+     #:contents contents
+     #:actions actions
+     #:trivia trivia)))
 (define area/outdoors/road
   (lambda (#:name name #:nouns [nouns #f] #:adjectives [adjectives #f]
             #:description [description #f] #:exits [exits #f]

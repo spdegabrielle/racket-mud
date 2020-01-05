@@ -7,7 +7,7 @@
 \#*.rkt#*#
 
 # Compiled racket bytecode
-compiled/
+**/compiled
 *.zo
 
 # Dependency tracking files

@@ -13,8 +13,8 @@
     (let ([trivias ((quality-getter thing) 'trivia)])
       (add-to-out
        (cond
-         [trivias (car (shuffle trivias))]
-         [else "There's no trivia recorded for ~a." (name thing)]))))
+         [(null? trivias) "There's no trivia recorded for ~a." (name thing)]
+         [else  (car (shuffle trivias))]))))
   (λ (args)
     (cond [(hash-empty? args)
            (trivium (quality 'location))]

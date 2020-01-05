@@ -16,7 +16,6 @@
          [set-quality! (quality-setter thing)]
          [message (quality 'client-out)]
          [out (quality 'mudsocket-out)])
-    (log-debug "THING QUALITIES ARE ~a" (thing (lambda (thing) (thing-qualities thing))))
     (log-debug "Sending ~a a message:\n   ~a" name
                (cond
                  [(> (string-length message) 60)
@@ -39,7 +38,6 @@
   (define add-to-out ((string-quality-appender thing) 'client-out))
   (define mud (thing (λ (thing) (thing-mud thing))))
   (define schedule (car mud)) (define state (cdr mud))
-  (log-debug "MUD's hooks are ~a" (mud-hooks state))
   (define login-stage 0)
   (lambda (line)
     (log-debug "Received the following login line from ~a:\n   ~a"

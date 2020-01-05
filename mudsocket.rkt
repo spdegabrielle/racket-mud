@@ -14,7 +14,6 @@
     (define listener (tcp-listen port 5 #t))
     (define connections '())
     (define (accept-connection state)
-      (log-debug "STATE IS AAAAAAAAAAAAAAAA ~a" state)
       (define-values (in out) (tcp-accept listener))
       (define-values (lip lport rip rport) (tcp-addresses in #t))
       (let* ([thing
@@ -44,9 +43,14 @@
                         (cons "move" (move thing))
                         (cons "trivia" (trivia thing)))))
         (set! connections (append (list thing) connections))
-        (set-quality! 'client-out "Connected to Racket-MUD.")
+        (set-quality! 'client-out "You've connected to Teraum, a role-playing game currently in early and active development. Please type your [desired] user-name and press ENTER.")
         (log-debug "Accepted connection from ~a:~a"
                    rip rport)))
+    (define (load state)
+      (let ([schedule (car state)]
+            [mud (cdr state)])
+        (schedule tick)
+        state))
     (define (tick state)
       (let ([schedule (car state)]
             [mud (cdr state)])
@@ -84,4 +88,4 @@
         (when (tcp-accept-ready? listener) (accept-connection state))
         (schedule tick)
         state))
-    tick))
+    load))
