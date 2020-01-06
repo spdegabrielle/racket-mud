@@ -41,6 +41,29 @@ As *Teraum* increases in sophistication, the number of /events/ passed when the 
 
 In follow-up posts, I plan on explaining how each of these events work, and providing a more thorough explanation of what ~making~ an /engine/ actually means. Also, what goes into the ~teraum-map~: how are in-game things represented, as source code.
 * Project Management
+** Flow
+
+#+BEGIN_SRC sh
+git flow feature start womble
+#+END_SRC
+
+This creates a new git branch, ~feature/womble~, based on the ~develop~ branch. Once you’re on the feature branch, you can make whatever changes to the code you want. Let’s pretend I added a ~womble~ command.
+
+#+BEGIN_SRC sh
+git flow feature finish womble
+#+END_SRC
+
+#+BEGIN_SRC sh
+$ git flow release start 0.0.4
+$ git log --pretty=format:'- [[http://gitlab.com/emsenn/racket-mud/commit/%H][view commit]] - %s' > docs/changelog.org
+$ cd ./docs && make html && cd ..
+#+END_SRC
+
+#+BEGIN_SRC
+git flow release finish 0.0.4
+git push --all
+#+END_SRC
+
 ** Commits
 
 Here's the format
