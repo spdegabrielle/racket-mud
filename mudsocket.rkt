@@ -67,15 +67,21 @@
                [(port-closed? in)
                 (set! connections (remove thing connections))]
                [(byte-ready? in)
-                (define (error-handler exn)
-                  (log-warning "Connection issue: ~a" exn)
+                (with-handlers
+                    ([exn:fail:read?
+                      (λ (exn)
+                        (log-warning "Connection issue: ~a" exn)
                         (close-input-port in)
                         (close-output-port out)
                         (set! connections
-                              (remove thing connections)))
-                (with-handlers
-                    ([exn:fail:read? (error-handler exn)]
-                     [exn:fail:network:errno? (error-handler exn)])
+                              (remove thing connections)))]
+                     [exn:fail:network:errno?
+                      (λ (exn)
+                        (log-warning "Connection issue: ~a" exn)
+                        (close-input-port in)
+                        (close-output-port out)
+                        (set! connections
+                              (remove thing connections)))]
                   (let ([line-in (read-line in)])
                     (cond [(string? line-in)
                            (parser (string-trim line-in))]
